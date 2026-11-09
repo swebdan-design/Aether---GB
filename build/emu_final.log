@@ -4,36 +4,39 @@ AETHER emulator tests  ROM: build/AETHER_by_Synth_Centric.gb
   PASS ROM size matches header  [131072]
   PASS title: logo tiles drawn (AETHER)
   PASS title: 'by Synth Centric' directly beneath the logo  [  by Synth Centric  ]
+  PASS title: no inverted / tabbed header
   PASS title: 'generative ambient instrument'
   PASS title: not playing before user input
-  PASS START on title -> LIVE page  [ LIVE       ~~~~~~ ~]
+  PASS START on title -> LIVE page  [^ LIVE > FIRST LIGH~]
   PASS playback started
   PASS VBlank audio clock advances 1/frame  [1800]
   PASS generative events produced (30 s)  [30]
   PASS audio output from DMG sound hardware  [rms=0.90]
-  PASS LIVE shows project, macros, scene, hint  [FIRST LIGHT         ]
-  PASS IMPRINT capture (LIVE, A) stores a motif  [len=3 msg=IMPRINT 1 CAPTURED 3]
-  PASS IMPRINT confirmation shown  [IMPRINT 1 CAPTURED 3]
-  PASS LIVE macro DENSITY editable  [3->5]
+  PASS LIVE shows project, macros, scene, hint  [ DENSITY       \ 3[ ]
+  PASS IMPRINT capture (LIVE, A) stores a motif  [len=3 msg=~IMPRINT 1 CAPTURED ]
+  PASS IMPRINT confirmation shown  [~IMPRINT 1 CAPTURED ]
+  PASS LIVE fader DENSITY editable (up/down)  [3->5]
   PASS SELECT cycles the six pages
   PASS playback continues while navigating
   PASS instrument editor opens (PULSE LAB)  [ TYPE      PULSE    ]
+  PASS help panel explains the selected parameter  [START LOUDNESS      ]
   PASS PULSE LAB: VOLUME edit changes instrument 1  [11->10]
-  PASS A auditions the edited instrument  [A:HEAR B:BACK       ]
-  PASS WAVE LAB opens  [ SYNTH     WAVE LAB~]
+  PASS A auditions the edited instrument  [0-15                ]
+  PASS WAVE LAB opens  [^ SYNTH > WAVE LAB ~]
   PASS WAVE LAB: D-pad draws sample 0 of wave 1  [8->5]
   PASS AGENTS: ORBIT enable toggles
   PASS AGENTS: ORBIT activity editable  [9->8]
   PASS ECOLOGY screen shows the four variables  [ ENERGY   ~~~~~~  45]
-  PASS HARMONY: scale selection  [~SCALE     MINOR    ]
+  PASS HARMONY: scale selection  [ ROOT      D        ]
+  PASS B on a page's top level returns home to LIVE  [^ LIVE > FIRST LIGH~]
   PASS FORM: FIRST LIGHT runs in FREE time
   PASS FORM: switch to CLOCKED
-  PASS CLOCKED mode generates events  [9]
+  PASS CLOCKED mode generates events  [5]
   PASS FORM: back to FREE
   PASS FORM: manual scene change  [scene=2]
   PASS PROJECT: seed editable  [24301->24306]
-  PASS save asks for confirmation  [A AGAIN: SAVE SLOT  ]
-  PASS save verified  [SAVED + VERIFIED    ]
+  PASS save asks for confirmation  [~A AGAIN: SAVE SLOT ]
+  PASS save verified  [~SAVED + VERIFIED   ]
   PASS slot 1 reports OK  [ SLOT 1 OK          ]
   PASS power cycle + LOAD restores the saved project  [boot=24301 loaded=24306 saved=24306]
   PASS loaded name matches
@@ -45,25 +48,12 @@ AETHER emulator tests  ROM: build/AETHER_by_Synth_Centric.gb
   PASS music continues throughout (events every 10-min window)  [0]
   PASS long-form development (scene transitions)  [22]
   PASS no event queue overflow  [0]
-  PASS generator: average cost < 25% of a frame  [avg 28.2 lines, p99 133]
+  PASS main loop keeps up: generator + UI + driver < 1 frame on average  [gen 28.7 + ui 52.3 + isr 18.7 lines of 154]
   PASS VBlank driver: average cost < 15% of a frame  [avg 18.7 lines of 154]
   PASS VBlank driver: worst frame < 50% of a frame  [max 55, p99 41]
   PASS generator max lag within look-ahead  [0]
-  long run took 50.8 s wall clock
+  long run took 50.7 s wall clock
   PASS 8 agents at max activity for 5 min: still running
   PASS 8 agents: no queue overflow  [0]
-  PASS 8 agents: generator keeps within look-ahead  [1]
-  PASS demo first_light recorded from ROM (90s)  [rms=1.02 active=86%]
-  PASS demo pale_transmission recorded from ROM (90s)  [rms=2.86 active=100%]
-  PASS demo static_memory recorded from ROM (90s)  [rms=1.66 active=95%]
-  PASS demo dissolving_light recorded from ROM (90s)  [rms=2.12 active=41%]
-  PASS demo empty_rooms recorded from ROM (90s)  [rms=1.23 active=57%]
-  PASS demo glass_orbit recorded from ROM (90s)  [rms=2.94 active=95%]
-  PASS demo glass_orbit: pulse figures audible  [95% of 2 s windows]
-  PASS demo night_current recorded from ROM (90s)  [rms=5.92 active=100%]
-  PASS demo night_current: pulse figures audible  [100% of 2 s windows]
-  PASS demo soft_machines recorded from ROM (90s)  [rms=2.69 active=100%]
-  PASS demo soft_machines: pulse figures audible  [100% of 2 s windows]
-  PASS demo afterimage recorded from ROM (90s)  [rms=4.03 active=98%]
-63 / 63 emulator checks passed
-EXIT 0
+  PASS 8 agents: generator keeps within look-ahead  [0]
+54 / 54 emulator checks passed
