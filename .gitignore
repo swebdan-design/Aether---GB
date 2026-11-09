@@ -11,3 +11,5 @@ build/emu/
 *.sav
 *.ram
 __pycache__/
+build/pdf/
+build/*.log
