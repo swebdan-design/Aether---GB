@@ -70,12 +70,9 @@ static uint8_t check_copy(uint8_t slot, uint8_t c, uint8_t *gen)
     uint16_t addr = copy_addr(slot, c);
     uint16_t size, sum;
     sram_rd(addr, h, HDR_SIZE);
-    if (memcmp(h, magic, 4) != 0) {
-        /* any non-erased byte in the header suggests an interrupted write */
-        uint8_t i, blank = 1;
-        for (i = 0; i < HDR_SIZE; i++) if (h[i] != 0xFF && h[i] != 0x00) blank = 0;
-        return blank ? 0 : 2;
-    }
+    /* without the AETHER signature the copy is simply unused (a fresh
+     * cartridge holds random data); only signed copies can be "damaged" */
+    if (memcmp(h, magic, 4) != 0) return 0;
     if (h[4] != SAVE_FORMAT_VERSION) return 2;
     if (fletcher16(&h[4], 6) != (uint16_t)(h[10] | ((uint16_t)h[11] << 8))) return 2;
     size = (uint16_t)(h[6] | ((uint16_t)h[7] << 8));

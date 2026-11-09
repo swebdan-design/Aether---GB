@@ -25,6 +25,9 @@ all: $(ROM)
 src/interface/gfx_data.c: tools/mkgfx.py assets/graphics/font5x7.txt
 	python3 tools/mkgfx.py $@
 
+src/interface/help_data.c: tools/mkhelp.py assets/help.txt
+	python3 tools/mkhelp.py $@
+
 src/audio/tables.c: tools/mktables.py
 	python3 tools/mktables.py $@
 

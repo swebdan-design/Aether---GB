@@ -43,7 +43,7 @@ The design separates **decision making** (generator, main loop) from **sound pro
 | `src/synthesis/` | `modulation.c` modulation matrix; `patches.c` wave templates/transforms, factory patch library | auto |
 | `src/presets/` | `factory.c` default composition + 8 factory compositions | auto |
 | `src/storage/` | `save.c` versioned redundant saves; `sram_gb.c` MBC5 SRAM access (bank 0) | auto / 0 |
-| `src/interface/` | `gfx.c` text/meters/input/param-list editor (bank 0); `ui*.c` six pages (banked); `gfx_data.c` generated font & graphics | 0 / auto |
+| `src/interface/` | `gfx.c` text/meters/input/param-list editor, header and help panel (bank 0); `ui*.c` six pages (banked); `gfx_data.c` generated font & graphics; `help_data.c` generated help texts (`assets/help.txt`, `tools/mkhelp.py`) | 0 / auto |
 | `include/` | `aether.h` project data model, `engine.h` runtime + API, `audio.h`, `gfx.h`, `ui.h`, `storage.h`, `platform.h` | — |
 | `tools/` | `mktables.py` (frequency/noise tables), `mkgfx.py` (font, meters, logo), `package.sh` | — |
 | `tests/` | host test-suite, simulator, emulator tests | — |
@@ -136,7 +136,7 @@ bank = address / 8192, offset = 0xA000 + address % 8192   (4 copies per bank)
 +16  Project payload (915 bytes)
 ```
 
-Saving: invalidate the target copy's magic → write payload → write header → write magic → read back and verify. The target is always the older (or invalid) copy, so the previous good version survives a power loss mid-save. Loading picks the valid copy with the newest generation. Status per slot: EMPTY, OK, CORRUPT (nothing valid), BACKUP (the newest copy is damaged and the older valid copy will be loaded). Uninitialised SRAM (random or 0xFF/0x00) never validates. One slot's damage never affects another slot. 8 slots × 2 copies × 2 KB = 32 KB.
+Saving: invalidate the target copy's magic → write payload → write header → write magic → read back and verify. The target is always the older (or invalid) copy, so the previous good version survives a power loss mid-save. Loading picks the valid copy with the newest generation. Status per slot: EMPTY (no AETHER signature — includes a new cartridge's random memory), OK, CORRUPT (signed but nothing valid), BACKUP (the newest copy is damaged and the older valid copy will be loaded). Uninitialised SRAM (random or 0xFF/0x00) never validates. One slot's damage never affects another slot. 8 slots × 2 copies × 2 KB = 32 KB.
 
 ## 8. Reproducibility
 

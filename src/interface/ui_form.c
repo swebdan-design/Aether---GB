@@ -21,10 +21,10 @@ static uint8_t level, cur, top, sub_cur, sub_top, naming, npos, ncol, confirm;
 static const char * const tm_names[] = { "CLOCKED", "FREE" };
 static const char * const tm3_names[] = { "CLOCKED", "FREE", "KEEP" };
 static const char * const scn_names[] = { "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8" };
-static const char * const act_go[] = { "A=GO" };
-static const char * const act_open[] = { "OPEN" };
-static const char * const act_store[] = { "A=STORE" };
-static const char * const act_rename[] = { "RENAME" };
+static const char * const act_go[] = { "a: go" };
+static const char * const act_open[] = { "a: open" };
+static const char * const act_store[] = { "a: store" };
+static const char * const act_rename[] = { "a: name" };
 static const char * const root13[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", "KEEP" };
 static const char * const scale11[] = { "MAJOR", "MINOR", "MAJ PENT", "MIN PENT", "DORIAN", "PHRYGIAN", "LYDIAN", "MIXOLYD", "CHROMATIC", "USER SET", "KEEP" };
 static const char * const trans_names[] = { "MANUAL", "TIME", "CHANCE", "ECOLOGY" };
@@ -33,12 +33,12 @@ static const char * const hm_names[] = { "REINFORCE", "EXPLORE", "DRIFT", "KEEP"
 static const char * const agent9[] = { "ORBIT", "BLOOM", "DRIFT", "SCATTER", "TIDE", "ECHO", "ERODE", "MEMORY", "NONE" };
 static const char * const cap9[] = { "ORBIT", "BLOOM", "DRIFT", "SCATTER", "TIDE", "ECHO", "ERODE", "MEMORY", "ANY" };
 static const char * const tsc_names[] = { "x0.5", "x1", "x1.5", "x2" };
-static const char * const a_play[] = { "A=PLAY" };
-static const char * const a_mut[] = { "A=MUTATE" };
-static const char * const a_thin[] = { "A=THIN" };
-static const char * const a_fill[] = { "A=FILL" };
-static const char * const a_cap[] = { "A=CAPTURE" };
-static const char * const a_clear[] = { "A=CLEAR" };
+static const char * const a_play[] = { "a: play" };
+static const char * const a_mut[] = { "a: vary" };
+static const char * const a_thin[] = { "a: thin" };
+static const char * const a_fill[] = { "a: fill" };
+static const char * const a_cap[] = { "a: grab" };
+static const char * const a_clear[] = { "a: clear" };
 
 static const PDesc top_tab[] = {
     { "TIMING",    B_GLOB, GP_TMODE, 0, 1, F_NAME, 0, tm_names },
@@ -102,17 +102,17 @@ static void top_status(void)
     char s[12];
     uint16_t len = (uint16_t)(eng.form.live.s[SC_LEN] ? eng.form.live.s[SC_LEN] : 8) * 15;
     ui_scene_label(eng.form.scene, s);
-    put_strn(1, 11, "NOW", 3);
-    put_strn(5, 11, s, 11);
+    put_low(1, 11, "now", 3);
+    put_low(5, 11, s, 11);
     fmt_time(lb, eng.form.elapsed, 0);
     put_strn(1, 12, lb, 5);
     put_strn(6, 12, "/", 1);
     fmt_time(lb, len, 0);
     put_strn(7, 12, lb, 5);
-    put_strn(13, 12, trans_names[eng.form.live.s[SC_TRANS] & 3], 7);
-    put_strn(1, 13, "CHANGES", 7);
+    put_low(13, 12, trans_names[eng.form.live.s[SC_TRANS] & 3], 7);
+    put_low(1, 13, "changes", 7);
     put_num(9, 13, eng.form.transitions, 3);
-    put_strn(13, 13, eng.form.ending ? "ENDING" : (proj.glob[GP_FOREVER] ? "FOREVR" : "      "), 6);
+    put_low(13, 13, eng.form.ending ? "ending" : (proj.glob[GP_FOREVER] ? "forevr" : "      "), 6);
 }
 
 static void draw_top(void)
@@ -121,7 +121,6 @@ static void draw_top(void)
     ui_header(0);
     list_draw(top_tab, N_TOP, 2, N_TOP, cur, 0);
     top_status();
-    ui_hint("B:BACK");
 }
 
 /* -------------------------------------------------------------- scenes */
@@ -131,9 +130,9 @@ static void scenes_row(uint8_t i)
     uint8_t y = (uint8_t)(2 + i);
     put_tile(0, y, cur == i ? T_CURSOR : 0);
     ui_scene_label(i, s);
-    if (cur == i) put_inv(1, y, s, 11); else put_strn(1, y, s, 11);
+    put_low(1, y, s, 11);
     put_tile(13, y, proj.scene[i].s[SC_ON] ? T_BOX_ON : T_BOX_OFF);
-    put_strn(15, y, trans_names[proj.scene[i].s[SC_TRANS] & 3], 4);
+    put_low(15, y, trans_names[proj.scene[i].s[SC_TRANS] & 3], 4);
     put_tile(19, y, eng.form.scene == i ? T_PLAY : 0);
 }
 
@@ -141,11 +140,11 @@ static void draw_scenes(void)
 {
     uint8_t i;
     gfx_cls();
-    ui_header("SCENES");
+    ui_header("scenes");
     for (i = 0; i < NUM_SCENES; i++) scenes_row(i);
-    put_strn(1, 11, "SCENES ARE BEHAVIOUR", 19);
-    put_strn(1, 12, "STATES, NOT NOTES.", 19);
-    ui_hint("A:EDIT B:BACK");
+    put_low(1, 11, "scenes are states of", 19);
+    put_low(1, 12, "behaviour, not notes", 19);
+    ui_help("@SCENES");
 }
 
 static void draw_scene(void)
@@ -154,8 +153,7 @@ static void draw_scene(void)
     gfx_cls();
     ui_scene_label(ui_scene, s);
     ui_header(s);
-    list_draw(scene_tab, N_SCENE, 2, 15, sub_cur, sub_top);
-    ui_hint("B:BACK");
+    list_draw(scene_tab, N_SCENE, 2, 13, sub_cur, sub_top);
 }
 
 /* -------------------------------------------------------------- motifs */
@@ -165,27 +163,27 @@ static void motifs_row(uint8_t i)
     uint8_t y = (uint8_t)(2 + i * 2);
     put_tile(0, y, cur == i ? T_CURSOR : 0);
     lb[0] = 'M'; lb[1] = (char)('1' + i); lb[2] = 0;
-    if (cur == i) put_inv(1, y, lb, 2); else put_strn(1, y, lb, 2);
-    if (!m->len) { put_strn(4, y, "EMPTY", 16); put_strn(4, (uint8_t)(y + 1), "", 16); return; }
+    put_low(1, y, lb, 2);
+    if (!m->len) { put_low(4, y, "empty", 16); put_strn(4, (uint8_t)(y + 1), "", 16); return; }
     put_num(4, y, m->len, 1);
-    put_strn(6, y, "NOTES", 5);
+    put_low(6, y, "notes", 5);
     fmt_note(lb, m->base);
     put_strn(12, y, lb, 3);
-    put_strn(16, y, "R", 1);
+    put_low(16, y, "r", 1);
     put_num(17, y, m->recur, 2);
-    put_strn(4, (uint8_t)(y + 1), "SRC", 3);
-    put_strn(8, (uint8_t)(y + 1), agent9[m->source > 8 ? 8 : m->source], 8);
+    put_low(4, (uint8_t)(y + 1), "src", 3);
+    put_low(8, (uint8_t)(y + 1), agent9[m->source > 8 ? 8 : m->source], 8);
 }
 
 static void draw_motifs(void)
 {
     uint8_t i;
     gfx_cls();
-    ui_header("IMPRINT");
+    ui_header("imprint");
     for (i = 0; i < NUM_MOTIFS; i++) motifs_row(i);
-    put_strn(1, 11, "LIVE A = CAPTURE", 19);
-    put_strn(1, 12, "THE RECENT PHRASE", 19);
-    ui_hint("A:OPEN B:BACK");
+    put_low(1, 11, "on live, a captures", 19);
+    put_low(1, 12, "the recent phrase", 19);
+    ui_help("@MOTIFS");
 }
 
 static void draw_motif(void)
@@ -195,7 +193,6 @@ static void draw_motif(void)
     lb[3] = (char)('0' + proj.motif[ui_motif].len); lb[4] = 'N'; lb[5] = 0;
     ui_header(lb);
     list_draw(motif_tab, N_MOTIF, 2, N_MOTIF, sub_cur, 0);
-    ui_hint("B:BACK");
 }
 
 /* ---------------------------------------------------------- note table */
@@ -230,14 +227,13 @@ static void draw_notes(void)
 {
     uint8_t r;
     gfx_cls();
-    ui_header("NOTES");
-    put_strn(1, 2, "LEN", 3);
-    put_num(5, 2, proj.motif[ui_motif].len, 1);
-    put_strn(1, 3, "N  REL NOTE WAIT LEN", 19);
+    ui_header("notes");
+    put_low(1, 2, "length", 6);
+    put_num(8, 2, proj.motif[ui_motif].len, 1);
+    put_low(1, 3, "n  rel note wait len", 19);
     for (r = 0; r < MOTIF_MAX; r++) notes_row(r);
-    put_strn(1, 13, "WAIT/LEN: x4 FRAMES", 19);
-    put_strn(1, 14, "SEL ON LEN: L/R", 19);
-    ui_hint("A:COLUMN B:BACK");
+    put_low(1, 13, "wait/len in 1/15 s", 19);
+    ui_help("@NOTES");
 }
 
 static void notes_keys(uint8_t keys)
@@ -274,7 +270,7 @@ static void notes_keys(uint8_t keys)
         }
     }
     put_tile(0, 2, sub_cur == 0xFF ? T_CURSOR : 0);
-    put_num(5, 2, m->len, 1);
+    put_num(8, 2, m->len, 1);
     if (old != 0xFF && old < MOTIF_MAX) notes_row(old);
     if (sub_cur != 0xFF) notes_row(sub_cur);
 }
@@ -299,7 +295,9 @@ void pg_form(uint8_t keys, uint8_t mode) BANKED
     }
     switch (level) {
     case LV_TOP: {
-        uint8_t r = list_run(top_tab, N_TOP, 2, N_TOP, &cur, &top, keys);
+        uint8_t r;
+        if (keys & K_B) { ui_home(); return; }
+        r = list_run(top_tab, N_TOP, 2, N_TOP, &cur, &top, keys);
         if (r == LI_ACTION) {
             if (cur == 4) { form_goto(ui_var[0], 0); ui_msg("SCENE CHANGE"); top_status(); }
             else if (cur == 5) {
@@ -323,12 +321,12 @@ void pg_form(uint8_t keys, uint8_t mode) BANKED
             if (!text_edit(proj.scene[ui_scene].name, SCENE_NAME_LEN, 11, (uint8_t)(2 + sub_cur - sub_top), keys, &npos)) { naming = 0; draw_scene(); }
             return;
         }
-        r = list_run(scene_tab, N_SCENE, 2, 15, &sub_cur, &sub_top, keys);
+        r = list_run(scene_tab, N_SCENE, 2, 13, &sub_cur, &sub_top, keys);
         if (r == LI_BACK) { level = LV_SCENES; cur = ui_scene; draw_scenes(); }
         else if (r == LI_ACTION && sub_cur == 0) {
             naming = 1; npos = 0;
             text_edit(proj.scene[ui_scene].name, SCENE_NAME_LEN, 11, (uint8_t)(2 + sub_cur - sub_top), 0, &npos);
-            ui_hint("U/D:CHAR A:DONE");
+            ui_help("@TEXTEDIT");
         } else if (r == LI_CHANGED && ui_scene == eng.form.scene) {
             /* edits to the running scene take effect on its live copy */
             memcpy(eng.form.live.s, proj.scene[ui_scene].s, SC_COUNT);

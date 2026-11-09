@@ -29,6 +29,8 @@ void ui_frame(void) BANKED;            /* one UI frame          */
 void ui_header(const char *sub) NONBANKED;   /* bank 0: takes strings from any bank */
 void ui_redraw(void) BANKED;
 void ui_toggle_play(void) BANKED;
+void ui_home(void) BANKED;              /* go to LIVE */
+extern uint8_t ui_panel_single;
 
 void pg_live(uint8_t keys, uint8_t mode) BANKED;
 void pg_synth(uint8_t keys, uint8_t mode) BANKED;

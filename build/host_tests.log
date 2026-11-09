@@ -1,0 +1,23 @@
+AETHER - by Synth Centric : host test-suite
+project record 915 bytes, engine state 1456 bytes
+  t_rng_reproducible                    ok
+  t_scale_quantisation                  ok
+  t_pitch_choice_in_range_and_scale     ok
+  t_consonance_preference               ok
+  t_engine_ranges                       ok
+  t_agent_rules                         ok
+  t_ecology_bounds_and_damping          ok
+  t_ecology_feedback_changes_music      ok
+  t_voice_allocation                    ok
+  t_drone_protection                    ok
+  t_event_queue_capacity                ok
+  t_motifs                              ok
+  t_imprint_as_agent_source             ok
+  t_scene_transitions                   ok
+  t_save_roundtrip                      ok
+  t_save_corruption                     ok
+  t_seed_reproducibility                ok
+  t_clocked_timing                      ok
+  t_musical_configurations              ok
+  t_long_run_stability                  ok
+20 tests, 103282 checks, 0 failed

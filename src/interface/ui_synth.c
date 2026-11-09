@@ -34,8 +34,8 @@ static const char * const sweep_names[] = { "UP", "DOWN" };
 static const char * const retrig_names[] = { "LEGATO", "ALWAYS" };
 static const char * const level_names[] = { "25%", "50%", "100%" };
 static const char * const width_names[] = { "15 BIT", "7 BIT" };
-static const char * const act_name[] = { "EDIT" };
-static const char * const rename_name[] = { "RENAME" };
+static const char * const act_name[] = { "a: edit" };
+static const char * const rename_name[] = { "a: name" };
 
 #define COMMON_HEAD \
     { "NAME",      B_NONE, 0, 0, 0, F_ACTION, 0, rename_name }, \
@@ -157,6 +157,7 @@ static void audition(void)
 }
 
 /* --------------------------------------------------------------- top */
+static const char * const menu_items[3] = { "WAVE LAB", "MODULATION", "OUTPUT" };
 static void top_row(uint8_t i)
 {
     uint8_t y = (uint8_t)(2 + i + (i >= NUM_INST ? 1 : 0));
@@ -166,13 +167,20 @@ static void top_row(uint8_t i)
         lb[0] = (char)('1' + i); lb[1] = ' ';
         memcpy(lb + 2, proj.inst[i].name, INST_NAME_LEN);
         lb[8] = 0;
-        if (sel) put_inv(1, y, lb, 8); else put_strn(1, y, lb, 8);
-        put_strn(10, y, itype_names[proj.inst[i].p[IP_TYPE] % 3], 6);
-        put_strn(16, y, i == proj.glob[GP_TEXINST] ? "TEX" : "   ", 3);
+        put_low(1, y, lb, 8);
+        put_low(10, y, itype_names[proj.inst[i].p[IP_TYPE] % 3], 6);
+        put_low(16, y, i == proj.glob[GP_TEXINST] ? "tex" : "   ", 3);
     } else {
-        static const char * const items[3] = { "WAVE LAB", "MODULATION", "OUTPUT" };
-        if (sel) put_inv(1, y, items[i - NUM_INST], 12); else put_strn(1, y, items[i - NUM_INST], 12);
+        put_low(1, y, menu_items[i - NUM_INST], 12);
     }
+}
+
+static void top_help(void)
+{
+    if (cur < NUM_INST) {
+        static const char * const th[3] = { "pulse: channel 1/2", "wave: channel 3", "noise: channel 4" };
+        ui_help2("a: edit  l/r: listen", th[proj.inst[cur].p[IP_TYPE] % 3]);
+    } else ui_help(menu_items[cur - NUM_INST]);
 }
 
 static void draw_top(void)
@@ -180,11 +188,8 @@ static void draw_top(void)
     uint8_t i;
     gfx_cls();
     ui_header(0);
-    put_strn(1, 1, "INSTRUMENTS", 11);
     for (i = 0; i < NUM_INST + 3; i++) top_row(i);
-    put_strn(1, 15, "PULSE=CH1/2 WAVE=3", 19);
-    put_strn(1, 16, "NOISE=CH4 TEX=TEXTURE", 19);
-    ui_hint("A:EDIT  L/R:HEAR");
+    top_help();
 }
 
 /* --------------------------------------------------------- inst edit */
@@ -196,8 +201,7 @@ static void draw_inst(void)
     lb[0] = (char)('1' + ui_inst); lb[1] = ' ';
     memcpy(lb + 2, proj.inst[ui_inst].name, INST_NAME_LEN); lb[8] = 0;
     ui_header(lb);
-    list_draw(t, n, 2, 14, sub_cur, sub_top);
-    ui_hint("A:HEAR B:BACK");
+    list_draw(t, n, 2, 13, sub_cur, sub_top);
 }
 
 /* ---------------------------------------------------------- wave lab */
@@ -239,33 +243,36 @@ static void wave_full(void)
 
 static void wave_rows(void)
 {
-    static const char * const rows[5] = { "SLOT", "DRAW", "TEMPLATE", "TRANSFORM", "AUDITION" };
+    static const char * const rows[5] = { "slot", "draw", "template", "transform", "listen" };
     uint8_t i;
     for (i = 0; i < 5; i++) {
         uint8_t y = (uint8_t)(9 + i);
+        uint8_t adj = sub_cur == i && (i == 0 || i == 2 || i == 3);
         put_tile(0, y, sub_cur == i ? T_CURSOR : 0);
-        if (sub_cur == i) put_inv(1, y, rows[i], 9); else put_strn(1, y, rows[i], 9);
-        put_tile(10, y, 0);
+        put_low(1, y, rows[i], 9);
+        put_tile(10, y, adj ? T_LARROW : 0);
+        put_tile(19, y, adj ? T_RARROW : 0);
     }
     lb[0] = (char)('1' + wslot); lb[1] = 0;
-    put_strn(11, 9, lb, 9);
-    put_strn(11, 10, wdraw ? "ON" : "A=START", 9);
-    put_strn(11, 11, wt_names[wtempl], 9);
-    put_strn(11, 12, wx_names[wxform], 9);
-    put_strn(11, 13, "A=PLAY", 9);
-    fmt_num(lb, wpos, 2); lb[2] = ' '; lb[3] = '='; fmt_num(lb + 4, wave_get(wslot, wpos), 3);
-    put_strn(1, 8, "SAMPLE", 7);
-    put_strn(8, 8, lb, 8);
+    put_strn(11, 9, lb, 8);
+    put_low(11, 10, wdraw ? "drawing" : "a: start", 8);
+    put_low(11, 11, wt_names[wtempl], 8);
+    put_low(11, 12, wx_names[wxform], 8);
+    put_low(11, 13, "a: play", 8);
+    fmt_num(lb, wpos + 1, 2); lb[2] = 0;
+    put_low(1, 8, "sample", 6);
+    put_strn(8, 8, lb, 2);
+    put_low(11, 8, "level", 5);
+    put_num(17, 8, wave_get(wslot, wpos), 2);
 }
 
 static void draw_wave(void)
 {
     gfx_cls();
     ui_header("WAVE LAB");
-    put_strn(1, 2, "32 x 4-BIT WAVE RAM", 19);
     wave_full();
     wave_rows();
-    ui_hint(wdraw ? "D-PAD DRAW B:DONE" : "A:SELECT B:BACK");
+    ui_help(wdraw ? "@WAVE_DRAW" : "@WAVE_MENU");
 }
 
 static uint8_t find_wave_inst(void)
@@ -281,7 +288,7 @@ static void wave_keys(uint8_t keys)
 {
     if (wdraw) {
         uint8_t old = wpos;
-        if (keys & K_B) { wdraw = 0; wave_render_sample(wpos); wave_upload_col(wpos); wave_rows(); ui_hint("A:SELECT B:BACK"); return; }
+        if (keys & K_B) { wdraw = 0; wave_render_sample(wpos); wave_upload_col(wpos); wave_rows(); ui_help("@WAVE_MENU"); return; }
         if (keys & K_LEFT) wpos = (uint8_t)((wpos + 31) & 31);
         if (keys & K_RIGHT) wpos = (uint8_t)((wpos + 1) & 31);
         if (keys & (K_UP | K_DOWN)) {
@@ -311,7 +318,7 @@ static void wave_keys(uint8_t keys)
     if (keys & K_A) {
         uint8_t wi;
         switch (sub_cur) {
-        case 1: wdraw = 1; ui_hint("D-PAD DRAW B:DONE"); wave_render_sample(wpos); wave_upload_col(wpos); break;
+        case 1: wdraw = 1; ui_help("@WAVE_DRAW"); wave_render_sample(wpos); wave_upload_col(wpos); break;
         case 2: wave_template(wslot, wtempl); wave_full(); ui_msg("TEMPLATE APPLIED"); break;
         case 3: wave_transform(wslot, wxform, &eng.rng); wave_full(); ui_msg("TRANSFORMED"); break;
         case 4:
@@ -333,29 +340,24 @@ static void mod_live(void)
         int8_t v = mod_source(i);
         lb[0] = (char)('1' + i);
         lb[1] = 0;
-        put_strn((uint8_t)(i * 5), 16, lb, 1);
-        put_hbar((uint8_t)(i * 5 + 1), 16, 3, (uint8_t)(v + 128), 255);
+        put_strn((uint8_t)(i * 5), 14, lb, 1);
+        put_hbar((uint8_t)(i * 5 + 1), 14, 3, (uint8_t)(v + 128), 255);
     }
 }
 
 static void draw_mod(void)
 {
     gfx_cls();
-    ui_header("MOD");
-    list_draw(mod_tab, N_MOD, 2, 13, sub_cur, sub_top);
+    ui_header("modulation");
+    list_draw(mod_tab, N_MOD, 2, 12, sub_cur, sub_top);
     mod_live();
-    ui_hint("B:BACK");
 }
 
 static void draw_out(void)
 {
     gfx_cls();
-    ui_header("OUTPUT");
+    ui_header("output");
     list_draw(out_tab, N_OUT, 2, N_OUT, sub_cur, 0);
-    put_strn(1, 11, "ROLES RESERVE A", 15);
-    put_strn(1, 12, "CHANNEL FOR DRONES,", 19);
-    put_strn(1, 13, "MELODY OR PARTICLES", 19);
-    ui_hint("B:BACK");
 }
 
 void pg_synth(uint8_t keys, uint8_t mode) BANKED
@@ -381,7 +383,8 @@ void pg_synth(uint8_t keys, uint8_t mode) BANKED
         uint8_t old = cur;
         if ((keys & K_UP) && cur > 0) cur--;
         if ((keys & K_DOWN) && cur < NUM_INST + 2) cur++;
-        if (old != cur) { top_row(old); top_row(cur); }
+        if (old != cur) { top_row(old); top_row(cur); top_help(); }
+        if (keys & K_B) { ui_home(); return; }
         if ((keys & (K_LEFT | K_RIGHT)) && cur < NUM_INST) { ui_inst = cur; audition(); }
         if (keys & K_A) {
             if (cur < NUM_INST) {
@@ -405,10 +408,10 @@ void pg_synth(uint8_t keys, uint8_t mode) BANKED
             }
             return;
         }
-        r = list_run(t, n, 2, 14, &sub_cur, &sub_top, keys);
+        r = list_run(t, n, 2, 13, &sub_cur, &sub_top, keys);
         if (r == LI_BACK) { level = LV_TOP; draw_top(); return; }
         if (r == LI_ACTION) {
-            if (sub_cur == 0) { naming = 1; npos = 0; text_edit(proj.inst[ui_inst].name, INST_NAME_LEN, 11, (uint8_t)(2 + sub_cur - sub_top), 0, &npos); ui_hint("U/D:CHAR A:DONE"); }
+            if (sub_cur == 0) { naming = 1; npos = 0; text_edit(proj.inst[ui_inst].name, INST_NAME_LEN, 11, (uint8_t)(2 + sub_cur - sub_top), 0, &npos); ui_help("@TEXTEDIT"); }
             else if (sub_cur == 2) {
                 patch_factory(ui_inst, ui_var[0]);
                 ui_msg("PRESET LOADED");
@@ -425,7 +428,7 @@ void pg_synth(uint8_t keys, uint8_t mode) BANKED
         wave_keys(keys);
         break;
     case LV_MOD:
-        if (list_run(mod_tab, N_MOD, 2, 13, &sub_cur, &sub_top, keys) == LI_BACK) { level = LV_TOP; draw_top(); }
+        if (list_run(mod_tab, N_MOD, 2, 12, &sub_cur, &sub_top, keys) == LI_BACK) { level = LV_TOP; draw_top(); }
         break;
     default:
         if (list_run(out_tab, N_OUT, 2, N_OUT, &sub_cur, &top, keys) == LI_BACK) { level = LV_TOP; draw_top(); }

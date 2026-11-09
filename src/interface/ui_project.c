@@ -31,11 +31,11 @@ static uint8_t level, cur, top, naming, npos, confirm = 0xFF;
 
 static const char * const a_rename[] = { "RENAME" };
 static const char * const a_seed[] = { "" };
-static const char * const a_restart[] = { "A=RESTART" };
-static const char * const a_save[] = { "A=SAVE" };
-static const char * const a_load[] = { "A=LOAD" };
-static const char * const a_erase[] = { "A=ERASE" };
-static const char * const a_open[] = { "OPEN" };
+static const char * const a_restart[] = { "a: go" };
+static const char * const a_save[] = { "a: save" };
+static const char * const a_load[] = { "a: load" };
+static const char * const a_erase[] = { "a: erase" };
+static const char * const a_open[] = { "a: open" };
 static const char * const preset_list[NUM_PRESETS] = {
     "FIRST LT", "PALE TX", "STATIC M", "DISSOLV", "EMPTY RM", "GLASS ORB", "NIGHT CUR", "SOFT MACH", "AFTERIMG"
 };
@@ -71,12 +71,12 @@ static void slot_info(void)
     char nm[PROJ_NAME_LEN + 1];
     uint8_t s = ui_var[3] & 7;
     slot_state = slot_status(s);
-    put_strn(1, 13, "SLOT", 4);
+    put_low(1, 13, "slot", 4);
     put_num(6, 13, (uint16_t)(s + 1), 1);
-    put_strn(8, 13, st[slot_state & 3], 8);
+    put_low(8, 13, st[slot_state & 3], 8);
     if (slot_state == SLOT_OK || slot_state == SLOT_BACKUP) {
         slot_name(s, nm);
-        put_strn(1, 14, nm, PROJ_NAME_LEN);
+        put_low(1, 14, nm, PROJ_NAME_LEN);
     } else put_strn(1, 14, "", 19);
 }
 
@@ -84,13 +84,11 @@ static void draw_top(void)
 {
     gfx_cls();
     ui_header(0);
-    put_strn(1, 1, proj.name, PROJ_NAME_LEN);
+    put_strn(0, 12, "", 20);
+    put_low(1, 12, proj.name, PROJ_NAME_LEN);
     list_draw(prj_tab, N_PRJ, 2, N_PRJ, cur, 0);
     seed_row();
     slot_info();
-    put_strn(1, 15, "SAVES ARE CHECKED", 19);
-    put_strn(1, 16, "AND KEPT TWICE", 19);
-    ui_hint("A:SELECT");
 }
 
 static void stats(void)
@@ -104,23 +102,22 @@ static void stats(void)
     v[4] = eng.st_qfull; v[5] = eng.st_maxbehind; v[6] = prof_gen_max; v[7] = prof_ui_max;
     v[8] = isr_lines; v[9] = eng.hs.changes;
     for (i = 0; i < 10; i++) {
-        put_strn(1, (uint8_t)(2 + i), lab[i], 11);
+        put_low(1, (uint8_t)(2 + i), lab[i], 11);
         put_num(13, (uint8_t)(2 + i), v[i], 6);
     }
-    put_strn(1, 13, "TIME", 4);
+    put_low(1, 12, "time", 4);
     fmt_time(lb, eng.form.total_s, eng.form.hours);
-    put_strn(13, 13, lb, 7);
-    put_strn(1, 14, "SCENE CHANGES", 13);
-    put_num(15, 14, eng.form.transitions, 4);
-    put_strn(1, 15, "FRAME = 154 LINES", 19);
+    put_strn(13, 12, lb, 7);
+    put_low(1, 13, "scene changes", 13);
+    put_num(15, 13, eng.form.transitions, 4);
 }
 
 static void draw_stats(void)
 {
     gfx_cls();
-    ui_header("STATS");
+    ui_header("stats");
     stats();
-    ui_hint("A:RESET MAX B:BACK");
+    ui_help2("lines: of 154/frame", "a: reset  b: back");
 }
 
 static void draw_credits(void)
@@ -138,11 +135,11 @@ static void draw_credits(void)
     put_str(1, 6, "generative ambient");
     put_str(5, 7, "instrument");
     put_str(1, 9, "concept, sound, code");
-    put_str(4, 10, "SYNTH CENTRIC");
+    put_str(4, 10, "Synth Centric");
     put_str(1, 12, "for the original");
     put_str(1, 13, "Game Boy (DMG-01)");
     put_str(1, 15, "v" AETHER_VERSION_STR " GBDK-2020");
-    ui_hint("B:BACK");
+    ui_help("@CREDITS");
 }
 
 static void reload_engine(void)
@@ -184,7 +181,7 @@ void pg_project(uint8_t keys, uint8_t mode) BANKED
         return;
     }
     if (naming) {
-        if (!text_edit(proj.name, PROJ_NAME_LEN, 1, 1, keys, &npos)) { naming = 0; ui_hint("A:SELECT"); }
+        if (!text_edit(proj.name, PROJ_NAME_LEN, 1, 12, keys, &npos)) { naming = 0; draw_top(); }
         return;
     }
     if (cur == R_SEED && (keys & (K_LEFT | K_RIGHT))) {
@@ -197,7 +194,9 @@ void pg_project(uint8_t keys, uint8_t mode) BANKED
     }
     {
         uint8_t old = cur;
-        uint8_t r = list_run(prj_tab, N_PRJ, 2, N_PRJ, &cur, &top, keys);
+        uint8_t r;
+        if (keys & K_B) { ui_home(); return; }
+        r = list_run(prj_tab, N_PRJ, 2, N_PRJ, &cur, &top, keys);
         if (cur != old) { confirm = 0xFF; seed_row(); }
         if (r == LI_CHANGED && cur == R_SLOT) slot_info();
         if (r != LI_ACTION) return;
@@ -205,8 +204,8 @@ void pg_project(uint8_t keys, uint8_t mode) BANKED
     switch (cur) {
     case R_NAME:
         naming = 1; npos = 0;
-        text_edit(proj.name, PROJ_NAME_LEN, 1, 1, 0, &npos);
-        ui_hint("U/D:CHAR A:DONE");
+        text_edit(proj.name, PROJ_NAME_LEN, 1, 12, 0, &npos);
+        ui_help("@TEXTEDIT");
         break;
     case R_SEED:
         seed_set((uint16_t)(DIV_REG | ((uint16_t)ui_frame_cnt << 8)) ^ (uint16_t)(audio_time() * 31));

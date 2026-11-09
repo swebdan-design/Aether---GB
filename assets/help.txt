@@ -1,0 +1,198 @@
+# AETHER - by Synth Centric
+# Contextual help shown in the two-line panel at the bottom of the screen.
+# KEY|line 1|line 2   (each line at most 20 characters)
+# Keys are the parameter labels (a leading "1 ".."4 " is ignored), or @NAME
+# for page / screen help.
+@PAGE_LIVE|up/down: macro value|l/r: next control
+@LIVE_SCENE|up/down: pick scene|a: go to it now
+@LIVE_FADER|a: capture (imprint)|the last phrase
+@PAGE_SYNTH|a: edit  l/r: listen|b: home  sel: pages
+@PAGE_AGENTS|l/r: agent on/off|a: edit   b: home
+@PAGE_HARMONY|keys, scales, chords|a: open   b: home
+@PAGE_FORM|scenes, time, motifs|a: open   b: home
+@PAGE_PROJECT|save, load, seeds|a: select b: home
+@WAVE_DRAW|l/r: sample u/d: lvl|a: listen b: done
+@WAVE_MENU|a: select  b: back|
+@NOTES|a: next column|l/r: change b: back
+@USERSET|d-pad: move|a: toggle  b: back
+@TEXTEDIT|u/d: letter l/r: pos|a: done
+@SCENES|a: edit a scene|b: back
+@MOTIFS|a: open a motif|b: back
+@STATS|a: reset peaks|b: back
+@CREDITS|b: back|
+# ---------------------------------------------------------------- synth
+NAME|a: rename|
+TYPE|pulse, wave or noise|sets the channel
+PRESET|l/r choose a patch|a: load it here
+DUTY|pulse width: thin|to hollow square
+VOLUME|start loudness|0-15
+ENVELOPE|decay fades out,|swell fades in
+ENV PACE|envelope speed|0 = hold steady
+LENGTH|note length scale|8 = as requested
+VIB DEPTH|vibrato amount|
+VIB RATE|vibrato speed|
+VIB DELAY|time before vibrato|starts on a note
+ARPEGGIO|4-step pitch pattern|played per note
+ARP SPEED|frames per arp step|
+PITCH ENV|note starts this far|away, then glides
+PENV SPD|glide speed of the|pitch envelope
+SWEEP|ch1 hardware sweep|0 = off
+SWEEP DIR|sweep up or down|
+SWP STEP|sweep step size|
+RETRIGGER|legato glides into|the next note
+RANDOM|random detune|per note
+OCTAVE|transpose by octaves|
+PWM RATE|duty cycling speed:|a shimmering pulse
+WAVE A|wavetable 1-4|drawn in wave lab
+WAVE B|second wavetable|to morph toward
+MORPH|blend a toward b|in eighths
+LEVEL|wave output level|
+FADE|software fade|out or in
+FADE PACE|fade speed|0 = steady
+EVOLVE|slowly mutate the|wave while playing
+WIDTH|15 bit hiss or|7 bit metallic tone
+PITCH|noise colour|low rumble..hiss
+SPREAD|random colour|change per event
+DRIFT|colour wanders|during a note
+DRIFT SPD|how fast the colour|wanders
+DENSITY|texture event|density
+IRREGULAR|events off the|pattern, skips
+PATTERN|l/r step, a toggle|8-step texture beat
+ACTIVITY|how active: note|chance / drift
+SOURCE|modulation source|
+DEST|what it modulates|
+DEPTH|amount, +/-|
+RATE|source speed|
+CH1 PULSE|channel role: drone,|melody or particle
+CH2 PULSE|channel role:|reserve for a part
+CH3 WAVE|channel role:|drone keeps it safe
+CH4 NOISE|channel role:|off silences it
+TEXTURE|noise texture: inst.|or scene macro
+MASTER|master volume|0-7
+STEREO|stereo spread of|notes left/right
+# --------------------------------------------------------------- agents
+ENABLED|agent may play|(scene must allow)
+LOW|lowest note|of this agent
+HIGH|highest note|of this agent
+INSTR|instrument used|
+INSTR 2|fallback instrument|when ch is busy
+DUR MIN|shortest note|
+DUR MAX|longest note|
+TIMING|irregular timing|0 = steady
+MUTATION|how readily the|material changes
+HARMONY|scale adherence|15 = strictly in key
+ECO SENS|reacts to and moves|the ecology
+PRIORITY|higher may take a|channel from lower
+VELOCITY|start volume|patch = instrument's
+SEED|own random stream|
+RADIUS|semitones around|the centre
+INTERVALS|interval family|or weights
+VARIATION|how often the|figure changes
+MOTIF LEN|notes in the motif|
+BRANCHING|inversions and|retrogrades
+SILENCE|rests inserted|
+MAX LEN|longest phrase|before contracting
+MAX STEP|largest step in|scale degrees
+BIAS|drift up (+)|or down (-)
+RETURN|pull back toward|the centre
+START|starting degree|
+CLUSTER|bursts of notes|
+DUR VAR|duration variety|
+TIMBRES|extra instruments|used in turn
+PERIOD|length of one tide|rise and fall
+DRONES|chance of long|protected drones
+DELAY|time before the|echo restates
+DISPLACE|octave shift of|the echo
+FRAGMENT|notes dropped|from echoes
+INTERVAL|intervals inverted|or widened
+STRENGTH|maximum erosion|
+SPEED|how fast erosion|grows
+MOTIF CUT|holes cut in|other motifs
+MODE|cycle: regrow after|dissolving
+RECALL|chance to replay|remembered motifs
+FOCUS|sharper learnt|interval habits
+LEARNING|how often new|motifs are stored
+INFL E|how much energy|steers agents
+INFL T|how much tension|steers agents
+INFL S|how much stability|steers agents
+INFL M|how much memory|steers agents
+BIAS E|baseline energy|offset
+BIAS T|baseline tension|offset
+BIAS S|baseline stability|offset
+BIAS M|baseline memory|offset
+DAMPING|speed of return to|the baseline
+COUPLING|variables affecting|each other
+FREEZE|hold the ecology|as it is now
+# -------------------------------------------------------------- harmony
+ROOT|tonal centre|
+SCALE|pitch collection|
+LOWEST|lowest note of|the whole piece
+HIGHEST|highest note of|the whole piece
+CONSONANT|prefer notes that|fit the chord
+DISSONANT|chance of a|deliberate clash
+CHANGE|how often the|chord moves
+CENTRE|resist key changes,|return home
+RESOLVE|how firmly tension|resolves
+SEPARATE|keep voices this|many semitones apart
+MEM MODE|reinforce, explore|or drift away
+MEM POWER|strength of the|harmonic memory
+USER SET|your own 12-note|collection
+UNISON|weight of unison|
+MIN 2ND|weight of minor 2nd|
+MAJ 2ND|weight of major 2nd|
+MIN 3RD|weight of minor 3rd|
+MAJ 3RD|weight of major 3rd|
+4TH|weight of 4th|
+TRITONE|weight of tritone|
+5TH|weight of 5th|
+MIN 6TH|weight of minor 6th|
+MAJ 6TH|weight of major 6th|
+MIN 7TH|weight of minor 7th|
+MAJ 7TH|weight of major 7th|
+# ----------------------------------------------------------------- form
+TEMPO|clocked tempo|bpm
+FOREVER|compose endlessly,|evolving scenes
+START AT|first scene when|playback starts
+GO TO|a: jump to this|scene now
+STORE TO|a twice: save the|current sound here
+SCENES|a: edit scenes|
+MOTIFS|a: imprint library|
+AGENTS|l/r: agent|a: in / out of scene
+EVOLUTION|scene macro|keep = unchanged
+MOTION|scene macro|keep = unchanged
+SPACE|scene macro|keep = unchanged
+ENERGY|ecology target|for this scene
+TENSION|ecology target|for this scene
+STABILITY|ecology target|for this scene
+MEMORY|ecology target|for this scene
+CHANGE BY|how the scene ends:|time chance ecology
+CHANGE P|chance or ecology|condition 0-7
+NEXT|scene that follows|
+GLIDE|seconds to glide|into this scene
+HARM MODE|memory mode|in this scene
+PLAY|a: hear the motif|(while playing)
+MUTATE|a: vary it a little|
+BASE NOTE|transpose the motif|
+TIME|stretch or squeeze|its rhythm
+THIN|a: remove a note|
+FILL|a: add a passing|note
+RECUR|how often memory|brings it back
+SOURCE OF|let an agent build|on this motif
+FROM|capture notes of|this agent
+CAPTURE|a: capture recent|notes into it
+NOTES|a: edit notes|by hand
+CLEAR|a: empty the motif|
+# -------------------------------------------------------------- project
+RESTART|a: restart from|the seed
+SLOT|save slot 1-8|
+SAVE|a twice: save to|the slot
+LOAD|a twice: load the|slot
+ERASE|a twice: erase|the slot
+FACTORY|l/r choose, a twice:|load composition
+STATS|a: performance|numbers
+CREDITS|a: about aether|
+# ------------------------------------------------------------ menus
+WAVE LAB|draw the four|wavetables
+MODULATION|four modulation|slots
+OUTPUT|channel roles,|texture, master
+ECOLOGY|energy, tension,|stability, memory

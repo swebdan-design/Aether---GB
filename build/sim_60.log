@@ -1,0 +1,45 @@
+preset 0 'FIRST LIGHT       ' 60 min
+events 5558 (92.6/min)  gen=5558 dropped=1207 stolen=462 eroded=61 qfull=0
+channel events: P1 1148 P2 1810 W 63 N 2537 | occupancy % 28 45 42 11
+pitch range 38..107  eco ranges E15-205 T17-187 S54-222 M68-243  transitions 22 harmonic changes 163 forever 22
+per source (played/dropped): ORB 681/39  BLM 740/78  DRF 317/130  SCT 242/129  TID 63/0  ECH 784/305  ERO 0/0  MEM 289/135  TEX 2442/391  USR 0/0  
+preset 1 'PALE TRANSMISSION ' 60 min
+events 899 (15.0/min)  gen=899 dropped=174 stolen=3 eroded=0 qfull=0
+channel events: P1 152 P2 564 W 103 N 80 | occupancy % 11 20 66 15
+pitch range 40..107  eco ranges E13-114 T17-142 S106-195 M102-191  transitions 20 harmonic changes 103 forever 20
+per source (played/dropped): ORB 0/0  BLM 0/0  DRF 200/46  SCT 173/29  TID 100/0  ECH 346/62  ERO 0/0  MEM 0/0  TEX 80/37  USR 0/0  
+preset 2 'STATIC MEMORY     ' 60 min
+events 7056 (117.6/min)  gen=7056 dropped=2107 stolen=497 eroded=410 qfull=0
+channel events: P1 1567 P2 2642 W 10 N 2837 | occupancy % 29 49 42 34
+pitch range 37..107  eco ranges E32-217 T121-234 S6-130 M80-240  transitions 26 harmonic changes 7 forever 26
+per source (played/dropped): ORB 0/0  BLM 0/0  DRF 1185/170  SCT 688/414  TID 10/0  ECH 1435/309  ERO 0/0  MEM 1284/205  TEX 2454/1009  USR 0/0  
+preset 3 'DISSOLVING LIGHT  ' 60 min
+events 913 (15.2/min)  gen=913 dropped=602 stolen=87 eroded=11 qfull=0
+channel events: P1 318 P2 481 W 114 N 0 | occupancy % 41 57 58 45
+pitch range 40..98  eco ranges E11-136 T8-123 S107-224 M102-204  transitions 17 harmonic changes 130 forever 17
+per source (played/dropped): ORB 216/79  BLM 243/220  DRF 39/56  SCT 0/0  TID 114/0  ECH 301/247  ERO 0/0  MEM 0/0  TEX 0/0  USR 0/0  
+preset 4 'EMPTY ROOMS       ' 60 min
+events 1332 (22.2/min)  gen=1332 dropped=20 stolen=43 eroded=0 qfull=0
+channel events: P1 304 P2 984 W 0 N 44 | occupancy % 9 31 45 19
+pitch range 38..97  eco ranges E6-86 T34-125 S97-209 M105-225  transitions 21 harmonic changes 69 forever 21
+per source (played/dropped): ORB 0/0  BLM 185/0  DRF 204/6  SCT 14/1  TID 0/0  ECH 751/9  ERO 0/0  MEM 135/0  TEX 43/4  USR 0/0  
+preset 5 'GLASS ORBIT       ' 60 min
+events 12221 (203.7/min)  gen=12222 dropped=3905 stolen=594 eroded=0 qfull=0
+channel events: P1 5114 P2 6804 W 91 N 212 | occupancy % 47 62 32 0
+pitch range 41..106  eco ranges E82-198 T15-155 S80-209 M77-193  transitions 24 harmonic changes 101 forever 24
+per source (played/dropped): ORB 9414/1953  BLM 478/884  DRF 0/0  SCT 368/212  TID 91/0  ECH 1871/856  ERO 0/0  MEM 0/0  TEX 0/0  USR 0/0  
+preset 6 'NIGHT CURRENT     ' 60 min
+events 10946 (182.4/min)  gen=10947 dropped=2906 stolen=643 eroded=0 qfull=0
+channel events: P1 2734 P2 4223 W 219 N 3770 | occupancy % 32 50 51 13
+pitch range 24..107  eco ranges E43-197 T51-166 S54-174 M74-194  transitions 21 harmonic changes 111 forever 21
+per source (played/dropped): ORB 2996/367  BLM 0/0  DRF 947/678  SCT 1233/356  TID 87/2  ECH 2808/1165  ERO 0/0  MEM 223/338  TEX 2653/0  USR 0/0  
+preset 7 'SOFT MACHINES     ' 60 min
+events 12405 (206.8/min)  gen=12407 dropped=1081 stolen=698 eroded=0 qfull=0
+channel events: P1 3269 P2 7704 W 936 N 496 | occupancy % 24 43 35 6
+pitch range 41..81  eco ranges E33-209 T8-165 S133-239 M102-214  transitions 22 harmonic changes 64 forever 22
+per source (played/dropped): ORB 6979/39  BLM 3290/520  DRF 975/148  SCT 0/0  TID 16/2  ECH 0/0  ERO 0/0  MEM 651/348  TEX 496/24  USR 0/0  
+preset 8 'AFTERIMAGE        ' 60 min
+events 1856 (30.9/min)  gen=1856 dropped=1289 stolen=314 eroded=96 qfull=0
+channel events: P1 755 P2 925 W 55 N 121 | occupancy % 62 73 32 0
+pitch range 37..103  eco ranges E6-130 T33-113 S71-192 M158-243  transitions 21 harmonic changes 115 forever 21
+per source (played/dropped): ORB 0/0  BLM 155/126  DRF 64/62  SCT 0/0  TID 54/0  ECH 747/496  ERO 0/0  MEM 715/605  TEX 121/0  USR 0/0  

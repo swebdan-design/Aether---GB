@@ -8,7 +8,13 @@
 #include "aether.h"
 
 /* ---------------------------------------------------------- tile map */
-#define T_INV       95     /* inverted font: T_INV + (c - 32), c in 32..95 */
+#define T_INV       95     /* inverted font: T_INV + (c - 32), c in 32..90 */
+#define T_UP        154
+#define T_DOWN      155
+#define T_RULE      156
+#define T_ORB       157
+#define T_MARK      158
+#define T_DOTSM     159
 #define T_HBAR      160    /* 9 tiles 0/8 .. 8/8 */
 #define T_VBAR      169    /* 9 tiles */
 #define T_DOT_ON    178
@@ -53,6 +59,8 @@ void put_tiles(uint8_t x, uint8_t y, uint8_t n, const uint8_t *t) NONBANKED;
 void put_str(uint8_t x, uint8_t y, const char *s) NONBANKED;
 void put_strn(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED;
 void put_inv(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED;
+void put_low(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED;
+void put_rule(uint8_t y) NONBANKED;
 void put_num(uint8_t x, uint8_t y, uint16_t v, uint8_t w) NONBANKED;
 void put_hbar(uint8_t x, uint8_t y, uint8_t w, uint8_t v, uint8_t max) NONBANKED;
 void fmt_num(char *d, uint16_t v, uint8_t w) NONBANKED;      /* right aligned */
@@ -122,6 +130,9 @@ uint8_t text_edit(char *buf, uint8_t len, uint8_t x, uint8_t y, uint8_t keys, ui
 /* status / hint line */
 void ui_msg(const char *s) NONBANKED;
 void ui_hint(const char *s) NONBANKED;
+void ui_help(const char *key) NONBANKED;   /* label or @KEY -> help panel */
+void ui_panel_draw(void) NONBANKED;
+void ui_help2(const char *a, const char *b) NONBANKED;
 extern uint8_t ui_msg_t;
 
 #endif

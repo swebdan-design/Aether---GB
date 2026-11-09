@@ -9,7 +9,7 @@
 | **D-pad UP / DOWN** | move through a list | auto-repeat when held |
 | **D-pad LEFT / RIGHT** | change the selected value | auto-repeat after ~¼ s; large ranges (notes, seed, tempo, pattern) accelerate while held |
 | **A** | enter / confirm / perform the row's action | in editors: plays the instrument (audition) |
-| **B** | back / cancel / finish editing | |
+| **B** | back / cancel / finish editing | on the top level of a page: go home to LIVE |
 | **SELECT** | next page: LIVE → SYNTH → AGENTS → HARMONY → FORM → PROJECT → LIVE | always returns to the top of the next page |
 | **START** | play / stop the composition | works on every page and screen |
 
@@ -22,14 +22,15 @@ No button combinations are used. All parameters can be edited while the composit
 ## LIVE page
 | Control | Action |
 |---|---|
-| UP / DOWN | select a macro (DENSITY, EVOLUTION, HARMONY, MOTION, TEXTURE, SPACE) or the SCENE row |
-| LEFT / RIGHT | change the macro (0–15) / choose a scene |
-| **A on a macro row** | **CAPTURE IMPRINT** — store the last 6 notes as the next imprint (M1→M4, cycling). The bottom line confirms "IMPRINT n CAPTURED k". |
-| A on the SCENE row | go to the chosen scene (with its glide) |
+| LEFT / RIGHT | choose a fader (DENSITY, EVOLUTION, HARMONY, MOTION, TEXTURE, SPACE) or the scene slot |
+| UP / DOWN | move the selected fader (0–15) / choose a scene on the scene slot |
+| **A on a fader** | **CAPTURE IMPRINT** — store the last 6 notes as the next imprint (M1→M4, cycling); the help line confirms "imprint n captured k" |
+| A on the scene slot | go to the chosen scene (with its glide) |
 
 ## Lists and editors
-* The selected row's label is shown inverted with a ► cursor; ◂ / ▸ at the right edge indicate more rows above / below.
-* Rows showing `A=…` or `OPEN` are actions: press A.
+* The selected row has a ► cursor; ◂ value ▸ means LEFT/RIGHT change it. ▴ / ▾ in the left margin mean more rows above / below.
+* The two-line help panel at the bottom always describes the selected control; confirmations appear on its second line.
+* Rows whose value reads `a: …` (for example `a: open`, `a: save`) are actions: press A.
 * **Bit rows** (AGENTS mask in scenes, noise PATTERN): LEFT/RIGHT move along the 8 positions, A toggles.
 * **Text** (project, instrument, scene names): A on the NAME row starts editing; LEFT/RIGHT move, UP/DOWN change the character, A or B finishes.
 * **Confirmation**: SAVE, LOAD, ERASE, FACTORY and STORE TO ask "A AGAIN" — press A a second time on the same row. Moving away cancels.

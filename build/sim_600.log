@@ -1,0 +1,6 @@
+preset 0 'FIRST LIGHT       ' 600 min
+     0.0s scene -> S1 ARRIVAL 
+events 57859 (96.4/min)  gen=57859 dropped=10413 stolen=3201 eroded=748 qfull=0
+channel events: P1 11071 P2 19427 W 680 N 26681 | occupancy % 22 41 44 12
+pitch range 38..107  eco ranges E13-208 T16-200 S46-223 M68-246  transitions 222 harmonic changes 254 forever 222
+per source (played/dropped): ORB 6860/292  BLM 7185/860  DRF 3049/824  SCT 2180/813  TID 666/2  ECH 9087/2235  ERO 0/0  MEM 2724/952  TEX 26108/4435  USR 0/0  

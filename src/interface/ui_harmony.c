@@ -20,7 +20,7 @@ static const char * const scale_names[NUM_SCALES] = {
     "MAJOR", "MINOR", "MAJ PENT", "MIN PENT", "DORIAN", "PHRYGIAN", "LYDIAN", "MIXOLYD", "CHROMATIC", "USER SET"
 };
 static const char * const mm_names[3] = { "REINFORCE", "EXPLORE", "DRIFT" };
-static const char * const open_name[] = { "EDIT" };
+static const char * const open_name[] = { "a: open" };
 static const char * const roman[7] = { "I", "II", "III", "IV", "V", "VI", "VII" };
 
 static const PDesc harm_tab[] = {
@@ -60,44 +60,41 @@ static const PDesc iw_tab[] = {
 static void memory_view(void)
 {
     uint8_t i, t[20], mx = 1;
-    put_strn(0, 14, "KEY", 3);
-    put_strn(4, 14, root_names[eng.hs.root], 2);
-    put_strn(7, 14, "CHORD", 5);
-    put_strn(13, 14, roman[eng.hs.degree % 7], 3);
-    put_strn(17, 14, eng.eco.resolving ? "RES" : "   ", 3);
+    put_low(0, 12, "now", 3);
+    put_strn(4, 12, root_names[eng.hs.root], 2);
+    put_low(7, 12, "chord", 5);
+    put_strn(13, 12, roman[eng.hs.degree % 7], 3);
+    put_low(16, 12, eng.eco.resolving ? "res" : "   ", 3);
     for (i = 0; i < 12; i++) if (eng.hs.pc_hist[i] > mx) mx = eng.hs.pc_hist[i];
     memset(t, 0, 20);
     for (i = 0; i < 12; i++) {
         uint8_t v = (uint8_t)(((uint16_t)eng.hs.pc_hist[i] * 8) / mx);
         t[4 + i] = (uint8_t)(T_VBAR + v);
     }
-    put_tiles(0, 15, 20, t);
-    put_strn(0, 15, "MEM", 3);
+    put_tiles(0, 13, 20, t);
+    put_low(0, 13, "mem", 3);
     memset(t, 0, 20);
     for (i = 0; i < 12; i++) {
         uint8_t c = (uint8_t)(root_names[i][1] == '#' ? '#' : root_names[i][0]);
         t[4 + i] = (uint8_t)(c - 32);
         if (eng.hs.mask & (1u << i)) t[4 + i] = (uint8_t)(T_INV + c - 32);
     }
-    put_tiles(0, 16, 20, t);
+    put_tiles(0, 14, 20, t);
 }
 
 static void draw_top(void)
 {
     gfx_cls();
     ui_header(0);
-    list_draw(harm_tab, N_HARM, 1, 12, cur, top);
+    list_draw(harm_tab, N_HARM, 2, 9, cur, top);
     memory_view();
-    ui_hint("A:OPEN  B:BACK");
 }
 
 static void draw_iw(void)
 {
     gfx_cls();
-    ui_header("INTERVAL");
-    put_strn(1, 1, "WEIGHT VS CHORD ROOT", 20);
+    ui_header("intervals");
     list_draw(iw_tab, N_IW, 2, 12, sub_cur, sub_top);
-    ui_hint("B:BACK");
 }
 
 static void user_draw(void)
@@ -115,13 +112,12 @@ static void user_draw(void)
 static void draw_user(void)
 {
     gfx_cls();
-    ui_header("USER SET");
-    put_strn(1, 1, "PITCH CLASSES", 13);
+    ui_header("user set");
     user_draw();
-    put_strn(1, 10, "INTERVALS ABOVE THE", 19);
-    put_strn(1, 11, "ROOT. SELECT SCALE", 19);
-    put_strn(1, 12, "'USER SET' TO USE.", 19);
-    ui_hint("A:TOGGLE B:BACK");
+    put_low(1, 11, "steps above the root", 19);
+    put_low(1, 12, "used by scale", 19);
+    put_low(1, 13, "'user set'", 19);
+    ui_help("@USERSET");
 }
 
 void pg_harmony(uint8_t keys, uint8_t mode) BANKED
@@ -138,7 +134,9 @@ void pg_harmony(uint8_t keys, uint8_t mode) BANKED
         return;
     }
     if (level == LV_TOP) {
-        uint8_t r = list_run(harm_tab, N_HARM, 1, 12, &cur, &top, keys);
+        uint8_t r;
+        if (keys & K_B) { ui_home(); return; }
+        r = list_run(harm_tab, N_HARM, 2, 9, &cur, &top, keys);
         if (r == LI_CHANGED && cur <= 1) harm_refresh();
         if (r == LI_CHANGED && cur == 2 && proj.harm[HP_LO] + 6 > proj.harm[HP_HI]) proj.harm[HP_HI] = (uint8_t)(proj.harm[HP_LO] + 6);
         if (r == LI_ACTION && cur == N_HARM - 2) { level = LV_IW; sub_cur = 0; sub_top = 0; draw_iw(); }

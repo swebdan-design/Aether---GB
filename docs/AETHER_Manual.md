@@ -52,37 +52,41 @@ A brand-new cartridge contains random data in its save memory. AETHER detects th
 
 | Button | Function |
 |---|---|
-| D-pad UP/DOWN | move through lists |
-| D-pad LEFT/RIGHT | change values (hold to repeat; large ranges accelerate) |
-| A | enter, confirm, perform an action; in editors: hear the instrument |
-| B | back / finish editing |
-| SELECT | next page (LIVE → SYNTH → AGENTS → HARMONY → FORM → PROJECT) |
+| D-pad UP/DOWN | move through lists · on LIVE: move the selected fader |
+| D-pad LEFT/RIGHT | change values (hold to repeat; large ranges accelerate) · on LIVE: choose a fader |
+| A | enter, confirm, perform an action; in editors: hear the instrument · on LIVE: IMPRINT |
+| B | back one level; on the top level of a page: **home** (LIVE) |
+| SELECT | next page (live → synth → agents → harmony → form → project) |
 | START | play / stop, from anywhere |
 
-Destructive actions (SAVE, LOAD, ERASE, FACTORY, STORE TO) ask you to press **A again**. The bottom line of the screen always shows hints or short messages. Full details: `CONTROLS.md`.
+**Reading the screen.** Every page has the same frame: the top line shows the orbit mark, the page name and where you are (`synth > 1 glass`), with ▶/■ for play state at the right. A dotted rule below carries six page dots (the filled one is the current page). The selected row has a ► cursor, and its value is framed by ◂ ▸ when LEFT/RIGHT can change it. ▴/▾ in the left margin mean the list continues above/below. Under the lower rule, a **two-line help panel** always explains the selected control; short confirmations appear on its second line, marked with a dot.
+
+Destructive actions (SAVE, LOAD, ERASE, FACTORY, STORE TO) ask you to press **A again**. Full details: `CONTROLS.md`.
 
 ## 6. LIVE screen
 
 The LIVE page is the instrument's face.
 
 ```
- LIVE       ●○○○○○ ▶      page, page dots, play state
-FIRST LIGHT               project name
-D  MAJOR    FREE  02:15   key and scale · FREE or BPM · elapsed time
-♪ ┌───────────────┐       TRACE: the last ~13 s of notes
-  │ · ·  ·    ·   │       (height = pitch, dim dots at the bottom = noise)
-  └───────────────┘
-O . D S T . . M   ▮▮▮▮    agents (inverted when playing) · channel meters
-E▬▬ T▬  S▬▬▬ M▬           ecology: energy, tension, stability, memory
-~▬▬ x▬  IV  RESOLV        tide · erosion · current chord · resolution
-►DENSITY   ▬▬▬▬     8     the six macros
- EVOLUTION ▬▬▬      6
- ...
- SCENE ◂S2 EMERGE ▸●      scene selector (● = running scene)
-A:IMPRINT START:PLAY      hints / messages
+ o live > first light   ▶     page, project, play state
+ ............... ●○○○○○       page dots
+ D  major            free     key, scale · FREE or BPM
+ s1 arrival         02:15     running scene · elapsed time
+ ♪  ·   ·  :   ·  ·           trace: the last ~13 s of notes
+ •orb  blm  drf •sct          the eight agents (big dot = playing now,
+ •tid  ech  ero  mem           small dot = taking part in the scene)
+ energy▬▬  tension▬▬          the ecology
+ stable▬▬  memory ▬▬
+ ...................
+  ▮▮ ▮▮ ▮▮ ▮▮ ▮▮ ▮▮  s        six macro faders · scene slot
+  ▮▮ ▮▮ ▮▮ ▮▮ ▮▮ ▮▮  2
+  ▲▲ ·· ·· ·· ·· ··           selection marker
+ ...................
+  density        ▾ 8▴         readout of the selected control
+ u/d value  a imprint         help / messages
 ```
 
-**Agent letters:** O ORBIT, B BLOOM, D DRIFT, S SCATTER, T TIDE, E ECHO, R ERODE, M MEMORY. A dot means the agent is disabled or not part of the current scene.
+**Playing LIVE:** LEFT/RIGHT choose one of the six faders or the scene slot at the far right. UP/DOWN move the selected fader (0–15) — or, on the scene slot, choose a scene; A then goes to it. On any fader, **A captures an IMPRINT**.
 
 ### Macro controls
 
@@ -97,13 +101,13 @@ Each macro (0–15) is mapped to real engine parameters:
 | **TEXTURE** | density of the noise texture; how often and how much wavetables evolve |
 | **SPACE** | silence (agents fire less, SCATTER/BLOOM insert rests), more compositional echoes, wider stereo placement |
 
-Scenes can glide the macros to new values; your adjustments always win until the next scene change.
+Scenes can glide the faders to new values (you will see them move); your adjustments always win until the next scene change.
 
 ### IMPRINT capture
-Press **A** on any macro row to capture the last six notes as an IMPRINT (FORM ▸ MOTIFS M1…M4, cycling). See §12.
+Press **A** while a fader is selected to capture the last six notes as an IMPRINT (FORM ▸ MOTIFS M1…M4, cycling). See §12.
 
-### Scene selector
-Choose a scene with LEFT/RIGHT on the SCENE row and press **A** to go there (the scene's glide applies).
+### Scene slot
+Select the slot at the right (LEFT/RIGHT), pick a scene with UP/DOWN and press **A** to go there (the scene's glide applies).
 
 ## 7. SYNTH editor
 
@@ -275,7 +279,7 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 
 1. PROJECT ▸ FACTORY: choose FIRST LIGHT, press A twice. Rename it (NAME).
 2. Press START. Listen for a minute.
-3. LIVE: lower DENSITY to 4 and raise SPACE to 12 — the music opens up. Raise MOTION — it quickens.
+3. LIVE: select the DENSITY fader and lower it to 4 (DOWN), then raise SPACE to 12 — the music opens up. Raise MOTION — it quickens.
 4. AGENTS: disable SCATTER (LEFT on its row). Open ORBIT, set INTERVALS to TRIAD and RADIUS to 7.
 5. HARMONY: change SCALE to DORIAN.
 6. FORM ▸ STORE TO S1, press A twice: your current sound is now scene 1.
@@ -314,7 +318,7 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 6. SAVE. Press START and leave the Game Boy running.
 
 ### Tutorial E — Capture and develop a musical motif
-1. While music plays, press A on LIVE when you hear a phrase you like: "IMPRINT 1 CAPTURED 6".
+1. While music plays, press A on LIVE when you hear a phrase you like: "imprint 1 captured 6".
 2. FORM ▸ MOTIFS ▸ M1: PLAY to hear it (while the composition runs).
 3. MUTATE a few times, adjust TIME to ×1.5, THIN once.
 4. RECUR 12: MEMORY will now recall it often. SOURCE OF BLOOM: BLOOM grows phrases from it.
@@ -350,7 +354,7 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 | A drone is never interrupted | that is protection: long notes and DRONE-role channels are protected. |
 | Notes are missing | four channels only: low-priority requests are dropped when channels are busy (STATS shows DROPPED). Raise the agent's PRIORITY or use INSTR 2. |
 | The key changes by itself | FOREVER mutation, MEM MODE DRIFT or HARMONY macro above 11. |
-| Slot shows CORRUPT | its data was damaged; save into it again to repair it. Other slots are unaffected. |
+| Slot shows CORRUPT | an AETHER save in it was damaged; save into it again to repair it. Other slots are unaffected. (A new cartridge's random memory simply shows EMPTY.) |
 | Slot shows BACKUP | the latest save was damaged; LOAD will load the previous version. Save again. |
 | Saves lost after power off | the cartridge/emulator must support MBC5 battery SRAM (32 KB) and keep its save file. |
 

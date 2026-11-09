@@ -14,6 +14,8 @@ BANKREF_EXTERN(gfx_data)
 extern const uint8_t font_1bpp[];
 extern const uint8_t gfx_2bpp[];
 extern const uint8_t logo_2bpp[];
+extern const uint8_t extra_2bpp[];
+void help_lookup(const char *key, char *out) BANKED;
 extern const uint8_t wave_2bpp[];
 
 char lb[24];
@@ -22,7 +24,7 @@ uint8_t ui_agent, ui_inst, ui_scene, ui_mod, ui_motif, ui_sub;
 uint8_t ui_var[8];
 uint8_t ui_msg_t;
 char ui_msgbuf[21];
-char ui_hintbuf[21];
+char ui_help_txt[42];               /* two 20-char lines (+NUL each) */
 
 static uint8_t tb[20];
 static uint8_t joy_prev, rep_cnt;
@@ -36,7 +38,8 @@ void gfx_init(void) NONBANKED
     set_1bpp_colors(DMG_BLACK, DMG_WHITE);
     set_bkg_1bpp_data(0, 95, font_1bpp);
     set_1bpp_colors(DMG_WHITE, DMG_BLACK);
-    set_bkg_1bpp_data(T_INV, 64, font_1bpp);
+    set_bkg_1bpp_data(T_INV, 59, font_1bpp);
+    set_bkg_data(T_UP, 6, extra_2bpp);
     set_bkg_data(T_HBAR, 32, gfx_2bpp);
     SWITCH_ROM(save);
     BGP_REG = 0xE4;
@@ -104,6 +107,26 @@ void put_str(uint8_t x, uint8_t y, const char *s) NONBANKED
     put_strn(x, y, s, (uint8_t)strlen(s));
 }
 
+/* the AETHER voice: interface text is set in lowercase */
+void put_low(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED
+{
+    uint8_t i = 0;
+    if (n > 20) n = 20;
+    for (; i < n && s[i]; i++) {
+        uint8_t c = (uint8_t)s[i];
+        if (c >= 'A' && c <= 'Z') c += 32;
+        tb[i] = ch_tile((char)c);
+    }
+    for (; i < n; i++) tb[i] = 0;
+    set_bkg_tiles(x, y, n, 1, tb);
+}
+
+void put_rule(uint8_t y) NONBANKED
+{
+    memset(tb, T_RULE, 20);
+    set_bkg_tiles(0, y, 20, 1, tb);
+}
+
 void put_inv(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED
 {
     uint8_t i = 0;
@@ -111,7 +134,7 @@ void put_inv(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED
     for (; i < n && s[i]; i++) {
         uint8_t c = (uint8_t)s[i];
         if (c >= 'a' && c <= 'z') c -= 32;
-        if (c < 32 || c > 95) c = 32;
+        if (c < 32 || c > 90) c = 32;
         tb[i] = (uint8_t)(T_INV + c - 32);
     }
     for (; i < n; i++) tb[i] = T_INV;
@@ -206,20 +229,63 @@ uint8_t joy_poll(void) NONBANKED
     return ev;
 }
 
-/* ------------------------------------------------------------ messages */
+/* --------------------------------------------------- help / messages
+ * Rows 16-17 form the help panel: two lines describing the selected
+ * control.  A message temporarily replaces the second line. */
+extern uint8_t ui_panel_single;
+void ui_panel_draw(void) NONBANKED
+{
+    if (ui_panel_single) {
+        if (ui_msg_t) { put_tile(0, 17, T_DOTSM); put_low(1, 17, ui_msgbuf, 19); }
+        else put_low(0, 17, ui_help_txt, 20);
+        return;
+    }
+    put_low(0, 16, ui_help_txt, 20);
+    if (ui_msg_t) {
+        put_tile(0, 17, T_DOTSM);
+        put_low(1, 17, ui_msgbuf, 19);
+    } else put_low(0, 17, ui_help_txt + 21, 20);
+}
+
 void ui_msg(const char *s) NONBANKED
 {
     uint8_t i;
-    for (i = 0; i < 20 && s[i]; i++) ui_msgbuf[i] = s[i];
+    for (i = 0; i < 19 && s[i]; i++) ui_msgbuf[i] = s[i];
     ui_msgbuf[i] = 0;
-    ui_msg_t = 100;
+    ui_msg_t = 110;
+    ui_panel_draw();
 }
 
 void ui_hint(const char *s) NONBANKED
 {
     uint8_t i;
-    for (i = 0; i < 20 && s[i]; i++) ui_hintbuf[i] = s[i];
-    ui_hintbuf[i] = 0;
+    for (i = 0; i < 20 && s[i]; i++) ui_help_txt[i] = s[i];
+    ui_help_txt[i] = 0;
+    ui_help_txt[21] = 0;
+    ui_panel_draw();
+}
+
+/* set the help panel to two explicit lines (any bank) */
+void ui_help2(const char *a, const char *b) NONBANKED
+{
+    uint8_t i;
+    for (i = 0; i < 20 && a[i]; i++) ui_help_txt[i] = a[i];
+    ui_help_txt[i] = 0;
+    for (i = 0; i < 20 && b[i]; i++) ui_help_txt[21 + i] = b[i];
+    ui_help_txt[21 + i] = 0;
+    ui_panel_draw();
+}
+
+/* look up help for a label (or an @KEY) and show it */
+void ui_help(const char *key) NONBANKED
+{
+    char k[16];
+    uint8_t i = 0;
+    if (key[0] >= '1' && key[0] <= '8' && key[1] == ' ') key += 2;   /* "1 SOURCE" */
+    for (; i < 15 && key[i]; i++) k[i] = key[i];
+    k[i] = 0;
+    help_lookup(k, ui_help_txt);
+    ui_panel_draw();
 }
 
 /* ------------------------------------------------------- param lists */
@@ -311,25 +377,45 @@ static void fmt_val(const PDesc *d, uint8_t v, char *o)
     for (i = 0; i < 9; i++) if (!o[i]) o[i] = ' ';
 }
 
+static uint8_t keep_case(uint8_t fmt)
+{
+    return fmt == F_NOTE || fmt == F_MASK;
+}
+
+/* row layout:  [cursor][label 9][<][value 8][>]
+ * the selected row shows a cursor and arrows around adjustable values */
 void list_row(const PDesc *t, uint8_t i, uint8_t y, uint8_t sel) NONBANKED
 {
     const PDesc *d = &t[i];
     uint8_t *p = pd_ptr(d);
+    uint8_t adj;
     char v[10];
     put_tile(0, y, sel ? T_CURSOR : 0);
-    if (sel) put_inv(1, y, d->label, 9); else put_strn(1, y, d->label, 9);
-    put_tile(10, y, 0);
-    if (d->fmt == F_ACTION || !p) {
-        fmt_val(d, 0, v);
-        put_strn(11, y, v, 9);
+    put_low(1, y, d->label, 9);
+    adj = (uint8_t)(sel && p && d->fmt != F_ACTION);
+    put_tile(10, y, adj && d->fmt != F_MASK && d->fmt != F_BITS ? T_LARROW : 0);
+    put_tile(19, y, adj && d->fmt != F_MASK && d->fmt != F_BITS ? T_RARROW : 0);
+    if (d->fmt == F_BAR && p) {
+        /* numeric value followed by a small meter */
+        put_num(11, y, *p, 2);
+        put_tile(13, y, 0);
+        put_hbar(14, y, 5, *p, d->max ? d->max : 15);
         return;
     }
-    fmt_val(d, *p, v);
-    if (sel && (d->fmt == F_MASK || d->fmt == F_BITS)) {
-        put_strn(11, y, v, 9);
+    fmt_val(d, (d->fmt == F_ACTION || !p) ? 0 : *p, v);
+    v[8] = 0;
+    if (keep_case(d->fmt)) put_strn(11, y, v, 8); else put_low(11, y, v, 8);
+    if (sel && p && (d->fmt == F_MASK || d->fmt == F_BITS)) {
         lb[0] = v[ui_sub & 7]; lb[1] = 0;
+        if (lb[0] == '.') lb[0] = '_';
         put_inv((uint8_t)(11 + (ui_sub & 7)), y, lb, 1);
-    } else put_strn(11, y, v, 9);
+    }
+}
+
+static void scroll_marks(uint8_t n, uint8_t y0, uint8_t vis, uint8_t top)
+{
+    put_tile(0, (uint8_t)(y0 - 1), top > 0 ? T_UP : T_RULE);
+    put_tile(0, (uint8_t)(y0 + vis), top + vis < n ? T_DOWN : T_RULE);
 }
 
 void list_draw(const PDesc *t, uint8_t n, uint8_t y0, uint8_t vis, uint8_t cur, uint8_t top) NONBANKED
@@ -340,9 +426,8 @@ void list_draw(const PDesc *t, uint8_t n, uint8_t y0, uint8_t vis, uint8_t cur, 
         if (i < n) list_row(t, i, (uint8_t)(y0 + r), i == cur);
         else put_strn(0, (uint8_t)(y0 + r), "", 20);
     }
-    /* scroll indicators */
-    if (top > 0) put_tile(19, y0, T_LARROW);
-    if (top + vis < n) put_tile(19, (uint8_t)(y0 + vis - 1), T_RARROW);
+    if (n > vis) scroll_marks(n, y0, vis, top);
+    if (cur < n) ui_help(t[cur].label);
 }
 
 uint8_t list_input(const PDesc *t, uint8_t n, uint8_t *cur, uint8_t *top, uint8_t vis, uint8_t keys) NONBANKED
@@ -392,8 +477,8 @@ uint8_t list_run(const PDesc *t, uint8_t n, uint8_t y0, uint8_t vis, uint8_t *cu
     else if (r == LI_MOVED) {
         list_row(t, old, (uint8_t)(y0 + old - *top), 0);
         list_row(t, *cur, (uint8_t)(y0 + *cur - *top), 1);
-        if (*top > 0) put_tile(19, y0, T_LARROW);
-        if (*top + vis < n) put_tile(19, (uint8_t)(y0 + vis - 1), T_RARROW);
+        if (n > vis) scroll_marks(n, y0, vis, *top);
+        ui_help(t[*cur].label);
     } else if (r == LI_CHANGED) list_row(t, *cur, (uint8_t)(y0 + *cur - *top), 1);
     return r;
 }
@@ -405,6 +490,7 @@ uint8_t text_edit(char *buf, uint8_t len, uint8_t x, uint8_t y, uint8_t keys, ui
 {
     uint8_t i, k = 0;
     if (keys & (K_A | K_B)) { put_strn(x, y, buf, len); return 0; }
+    if (!keys) ui_help("@TEXTEDIT");
     if (keys & K_LEFT && *pos) (*pos)--;
     if (keys & K_RIGHT && *pos + 1 < len) (*pos)++;
     if (keys & (K_UP | K_DOWN)) {
@@ -425,22 +511,27 @@ uint8_t text_edit(char *buf, uint8_t len, uint8_t x, uint8_t y, uint8_t keys, ui
 extern uint8_t ui_page;
 
 static const char * const page_names[6] = {
-    "LIVE", "SYNTH", "AGENTS", "HARMONY", "FORM", "PROJECT"
+    "live", "synth", "agents", "harmony", "form", "project"
 };
 
+/* header: orbit mark, page name and an optional sub-title in lowercase,
+ * play state at the right; row 1 is a dotted rule carrying the page
+ * dots; row 15 is the rule above the help panel. */
 void ui_header(const char *sub) NONBANKED
 {
-    uint8_t i;
-    char t[12];
-    memset(t, ' ', 11);
-    t[11] = 0;
-    for (i = 0; i < 10 && page_names[ui_page][i]; i++) t[1 + i] = page_names[ui_page][i];
-    put_inv(0, 0, t, 11);
-    if (sub) put_strn(11, 0, sub, 8);
-    else {
-        put_tile(11, 0, 0);
-        for (i = 0; i < 6; i++) put_tile((uint8_t)(12 + i), 0, i == ui_page ? T_PAGE_ON : T_PAGE_OFF);
-        put_tile(18, 0, 0);
+    uint8_t i, x;
+    put_strn(0, 0, "", 20);
+    put_tile(0, 0, T_ORB);
+    x = 2;
+    put_low(x, 0, page_names[ui_page], 7);
+    for (i = 0; page_names[ui_page][i]; i++) x++;
+    if (sub) {
+        put_strn((uint8_t)(x + 1), 0, ">", 1);
+        put_low((uint8_t)(x + 3), 0, sub, (uint8_t)(16 - x));
     }
     put_tile(19, 0, eng.playing ? T_PLAY : T_STOP);
+    put_rule(1);
+    for (i = 0; i < 6; i++) put_tile((uint8_t)(13 + i), 1, i == ui_page ? T_PAGE_ON : T_PAGE_OFF);
+    put_tile(19, 1, 0);
+    put_rule(15);
 }

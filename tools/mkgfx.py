@@ -70,13 +70,13 @@ for n in range(9):
             if x < n: p[y][x] = 3
             elif y in (3, 4) and x % 2 == 0: p[y][x] = 1
     gfx.append(p)
-# vertical bars 0..8
+# vertical bars 0..8 (fader / meter): solid fill over a thin centre track
 for n in range(9):
     p = blank()
     for y in range(8):
         for x in range(1, 7):
             if 7 - y < n: p[y][x] = 3
-            elif y == 7: p[y][x] = 1
+            elif x in (3, 4): p[y][x] = 1
     gfx.append(p)
 def circle(r, fill):
     p = blank()
@@ -139,6 +139,34 @@ for y in range(1, 7):
 gfx.append(p)
 assert len(gfx) == 32, len(gfx)
 
+# ---- extra glyphs for the v1.1 interface (tiles 154..159) ----
+extra = []
+p = blank()                        # UP (small triangle)
+for y in range(2, 6):
+    for x in range(4 - (y - 2), 4 + (y - 2)): p[y][x] = 2
+extra.append(p)
+p = blank()                        # DOWN
+for y in range(2, 6):
+    for x in range(4 - (5 - y), 4 + (5 - y)): p[y][x] = 2
+extra.append(p)
+p = blank()                        # RULE (fine dotted line)
+for x in range(0, 8, 2): p[4][x] = 1
+extra.append(p)
+p = blank()                        # ORB (ring with a satellite)
+for y in range(8):
+    for x in range(8):
+        d = math.hypot(x - 3.5, y - 4.0)
+        if 1.6 <= d <= 2.7: p[y][x] = 3
+p[0][7] = p[1][6] = 2
+extra.append(p)
+p = blank()                        # MARK (fader cursor, solid triangle)
+for y in range(3, 7):
+    for x in range(4 - (y - 3), 4 + (y - 3) + 1): p[y][x] = 3
+extra.append(p)
+p = blank()                        # DOTSM (small solid dot)
+for (x, y) in [(3, 3), (4, 3), (3, 4), (4, 4)]: p[y][x] = 3
+extra.append(p)
+
 # ---- title logo: AETHER, font scaled x3 with scanline rendering ----
 W, H = 128, 24
 logo = [[0] * W for _ in range(H)]
@@ -182,6 +210,7 @@ out = ["/* AETHER - by Synth Centric",
        "BANKREF(gfx_data)",
        emit_bytes("font_1bpp", font1, 8),
        emit_bytes("gfx_2bpp", sum((tile2bpp(t) for t in gfx), [])),
+       emit_bytes("extra_2bpp", sum((tile2bpp(t) for t in extra), [])),
        emit_bytes("logo_2bpp", sum((tile2bpp(t) for t in logo_tiles), [])),
        emit_bytes("wave_2bpp", sum((tile2bpp(t) for t in wave_tiles), [])),
        ""]

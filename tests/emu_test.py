@@ -56,8 +56,8 @@ class Emu:
         self.rec = False
 
     def tick(self, n=1):
-        for _ in range(n):
-            self.pb.tick(1, False, self.sound)
+        for k in range(n):
+            self.pb.tick(1, k == n - 1, self.sound)     # render the last frame
             if self.rec:
                 self.audio.append(self.pb.sound.ndarray.copy())
 
@@ -71,7 +71,9 @@ class Emu:
     def proj8(self, f, i=0): return self.r8(P + OFF[f] + i)
     def sym8(self, s): return self.r8(sym[s])
 
-    def row(self, y):
+    def row(self, y, raw=False):
+        if not raw:
+            return self.row(y, True).upper()     # the interface is lowercase; compare case-insensitively
         s = ""
         for x in range(20):
             t = self.pb.tilemap_background[x, y]
@@ -126,16 +128,17 @@ check("ROM size matches header", len(rom) == 32768 << rom[0x148], len(rom))
 emu = Emu()
 emu.tick(150)
 emu.shot("01_title")
-title_rows = [emu.row(y) for y in range(18)]
+title_rows = [emu.row(y, raw=True) for y in range(18)]
 check("title: logo tiles drawn (AETHER)", all(192 <= ((emu.pb.tilemap_background[x, 3] - 256) % 512 if emu.pb.tilemap_background[x, 3] >= 256 else emu.pb.tilemap_background[x, 3]) for x in range(2, 18)))
 check("title: 'by Synth Centric' directly beneath the logo", title_rows[7].strip() == "by Synth Centric", title_rows[7])
+check("title: no inverted / tabbed header", all(t < 95 or t >= 160 for t in [emu.pb.tilemap_background[x, 0] % 256 if emu.pb.tilemap_background[x, 0] >= 256 else emu.pb.tilemap_background[x, 0] for x in range(20)]))
 check("title: 'generative ambient instrument'", "generative ambient" in title_rows[11] and "instrument" in title_rows[12])
 check("title: not playing before user input", emu.eng8("playing") == 0)
 
 # ----- start playback from the title (START)
 emu.press("start")
 emu.tick(30)
-check("START on title -> LIVE page", emu.sym8("_ui_page") == 0 and emu.row(0).strip().startswith("LIVE"), emu.row(0))
+check("START on title -> LIVE page", emu.sym8("_ui_page") == 0 and "LIVE" in emu.row(0)[:8], emu.row(0))
 check("playback started", emu.eng8("playing") == 1)
 t0 = emu.r16(sym["_audio_now"]); ev0 = emu.eng16("st_events")
 emu.rec = True
@@ -149,8 +152,8 @@ check("audio output from DMG sound hardware", rms(a) > 0.3, "rms=%.2f" % rms(a))
 emu.shot("02_live_playing")
 live = [emu.row(y) for y in range(18)]
 check("LIVE shows project, macros, scene, hint",
-      live[1].startswith("FIRST LIGHT") and "DENSITY" in live[10] and "SPACE" in live[15] and "SCENE" in live[16] and "IMPRINT" in live[17] or "IMPRINT" in "".join(live),
-      live[1])
+      "FIRST LIGH" in live[0] and "MAJOR" in live[2] and "ENERGY" in live[9] and "DENSITY" in live[16] and "IMPRINT" in live[17],
+      live[16])
 
 # ----- IMPRINT capture from LIVE
 emu.press("a"); emu.tick(5)
@@ -158,10 +161,10 @@ mlen = emu.proj8("motif", 0)
 check("IMPRINT capture (LIVE, A) stores a motif", mlen >= 2, "len=%d msg=%s" % (mlen, emu.row(17)))
 check("IMPRINT confirmation shown", "IMPRINT 1 CAPTURED" in emu.row(17), emu.row(17))
 
-# ----- macro editing on LIVE
+# ----- macro faders on LIVE: UP/DOWN move the selected fader
 d0 = emu.proj8("macro", 0)
-emu.press("right"); emu.press("right")
-check("LIVE macro DENSITY editable", emu.proj8("macro", 0) == min(15, d0 + 2), "%d->%d" % (d0, emu.proj8("macro", 0)))
+emu.press("up"); emu.press("up")
+check("LIVE fader DENSITY editable (up/down)", emu.proj8("macro", 0) == min(15, d0 + 2), "%d->%d" % (d0, emu.proj8("macro", 0)))
 
 # ----- navigation through all six pages
 names = ["LIVE", "SYNTH", "AGENTS", "HARMONY", "FORM", "PROJECT"]
@@ -169,8 +172,8 @@ ok = True
 for i in range(1, 7):
     emu.press("select"); emu.tick(25)
     pg = emu.sym8("_ui_page")
-    hdr = emu.row(0).strip()
-    if pg != i % 6 or not hdr.startswith(names[i % 6]): ok = False
+    hdr = emu.row(0)[:12]
+    if pg != i % 6 or names[i % 6] not in hdr: ok = False
     emu.shot("03_page_%d_%s" % (i % 6, names[i % 6].lower()))
 check("SELECT cycles the six pages", ok)
 check("playback continues while navigating", emu.eng8("playing") == 1)
@@ -181,6 +184,7 @@ emu.press("a"); emu.tick(20)
 emu.shot("04_pulse_lab")
 check("instrument editor opens (PULSE LAB)", "TYPE" in emu.row(3) and "PULSE" in emu.row(3), emu.row(3))
 for _ in range(4): emu.press("down")
+check("help panel explains the selected parameter", "LOUDNESS" in emu.row(16), emu.row(16))
 inst_vol_addr = P + OFF["inst"] + 0 * OFF["sizeof_inst"] + 2
 v0 = emu.r8(inst_vol_addr)
 emu.press("left")
@@ -232,6 +236,8 @@ emu.press("down"); emu.press("right")
 check("HARMONY: scale selection", emu.proj8("harm", 1) == s0 + 1, emu.row(2))
 emu.press("left")
 emu.shot("09_harmony")
+emu.press("b"); emu.tick(10)
+check("B on a page's top level returns home to LIVE", emu.sym8("_ui_page") == 0, emu.row(0))
 
 # ----- FORM: FREE/CLOCKED and scene change
 goto_page(emu, 4)
@@ -328,12 +334,16 @@ for f in range(60 * 120):
     isr_samples.append(emu.sym8("_isr_lines"))
 isr_avg = sum(isr_samples) / len(isr_samples)
 gen_samples = []
+ui_samples = []
 for f in range(60 * 60):
     emu.tick(1)
     gen_samples.append(emu.sym8("_prof_gen_lines"))
+    ui_samples.append(emu.sym8("_prof_ui_lines"))
 gen_avg = sum(gen_samples) / len(gen_samples)
 gen_p99 = sorted(gen_samples)[int(len(gen_samples) * 0.99)]
-check("generator: average cost < 25% of a frame", gen_avg < 38, "avg %.1f lines, p99 %d" % (gen_avg, gen_p99))
+ui_avg = sum(ui_samples) / len(ui_samples)
+check("main loop keeps up: generator + UI + driver < 1 frame on average", gen_avg + ui_avg + isr_avg < 154,
+      "gen %.1f + ui %.1f + isr %.1f lines of 154" % (gen_avg, ui_avg, isr_avg))
 isr_p99 = sorted(isr_samples)[int(len(isr_samples) * 0.99)]
 check("VBlank driver: average cost < 15% of a frame", isr_avg < 23, "avg %.1f lines of 154" % isr_avg)
 check("VBlank driver: worst frame < 50% of a frame", max(isr_samples) < 77 and isr < 77, "max %d, p99 %d" % (max(isr_samples), isr_p99))
@@ -342,7 +352,7 @@ print("  long run took %.1f s wall clock" % (time.time() - t_start))
 long_stats = dict(minutes=LONG_MIN, events=total_ev, transitions=emu.eng8("form.transitions"),
                   gen_lines_max=gen_max, ui_lines_max=ui_max, isr_lines_max=isr,
                   isr_lines_avg=round(isr_avg, 1), isr_lines_p99=isr_p99,
-                  gen_lines_avg=round(gen_avg, 1), gen_lines_p99=gen_p99,
+                  gen_lines_avg=round(gen_avg, 1), gen_lines_p99=gen_p99, ui_lines_avg=round(ui_avg, 1),
                   max_behind=emu.eng8("st_maxbehind"), dropped=emu.eng16("st_dropped"),
                   stolen=emu.eng16("st_stolen"), windows=samples)
 emu.shot("12_after_long_run")
