@@ -1,0 +1,403 @@
+/*
+ * AETHER - by Synth Centric
+ * gfx.c : display primitives, input with debounce / auto-repeat, and the
+ * table-driven parameter list editor.  Fixed bank 0 so that every banked
+ * page can pass pointers to its own constant tables and strings.
+ */
+#include <gb/gb.h>
+#include <string.h>
+#include "gfx.h"
+#include "engine.h"
+
+BANKREF_EXTERN(gfx_data)
+extern const uint8_t font_1bpp[];
+extern const uint8_t gfx_2bpp[];
+extern const uint8_t logo_2bpp[];
+extern const uint8_t wave_2bpp[];
+
+char lb[24];
+uint8_t joy_held, joy_accel;
+uint8_t ui_agent, ui_inst, ui_scene, ui_mod, ui_motif, ui_sub;
+uint8_t ui_var[8];
+uint8_t ui_msg_t;
+char ui_msgbuf[21];
+char ui_hintbuf[21];
+
+static uint8_t tb[20];
+static uint8_t joy_prev, rep_cnt;
+
+/* ---------------------------------------------------------------- init */
+void gfx_init(void) NONBANKED
+{
+    uint8_t save = CURRENT_BANK;
+    DISPLAY_OFF;
+    SWITCH_ROM(BANK(gfx_data));
+    set_1bpp_colors(DMG_BLACK, DMG_WHITE);
+    set_bkg_1bpp_data(0, 95, font_1bpp);
+    set_1bpp_colors(DMG_WHITE, DMG_BLACK);
+    set_bkg_1bpp_data(T_INV, 64, font_1bpp);
+    set_bkg_data(T_HBAR, 32, gfx_2bpp);
+    SWITCH_ROM(save);
+    BGP_REG = 0xE4;
+    SCX_REG = 0; SCY_REG = 0;
+    gfx_cls();
+    SHOW_BKG;
+    DISPLAY_ON;
+}
+
+void gfx_title_tiles(void) NONBANKED
+{
+    uint8_t save = CURRENT_BANK;
+    SWITCH_ROM(BANK(gfx_data));
+    set_bkg_data(T_DYN, 48, logo_2bpp);
+    set_bkg_data(T_DYN + 48, 16, wave_2bpp);
+    SWITCH_ROM(save);
+}
+
+void dyn_tile(uint8_t idx, const uint8_t *data) NONBANKED
+{
+    set_bkg_data((uint8_t)(T_DYN + idx), 1, data);
+}
+
+void gfx_cls(void) NONBANKED
+{
+    gfx_clear_rows(0, 17);
+}
+
+void gfx_clear_rows(uint8_t y0, uint8_t y1) NONBANKED
+{
+    uint8_t y;
+    memset(tb, 0, 20);
+    for (y = y0; y <= y1; y++) set_bkg_tiles(0, y, 20, 1, tb);
+}
+
+/* ---------------------------------------------------------------- text */
+void put_tile(uint8_t x, uint8_t y, uint8_t t) NONBANKED
+{
+    set_bkg_tile_xy(x, y, t);
+}
+
+void put_tiles(uint8_t x, uint8_t y, uint8_t n, const uint8_t *t) NONBANKED
+{
+    set_bkg_tiles(x, y, n, 1, t);
+}
+
+static uint8_t ch_tile(char c)
+{
+    uint8_t u = (uint8_t)c;
+    if (u < 32 || u > 126) return 0;
+    return (uint8_t)(u - 32);
+}
+
+void put_strn(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED
+{
+    uint8_t i = 0;
+    if (n > 20) n = 20;
+    for (; i < n && s[i]; i++) tb[i] = ch_tile(s[i]);
+    for (; i < n; i++) tb[i] = 0;
+    set_bkg_tiles(x, y, n, 1, tb);
+}
+
+void put_str(uint8_t x, uint8_t y, const char *s) NONBANKED
+{
+    put_strn(x, y, s, (uint8_t)strlen(s));
+}
+
+void put_inv(uint8_t x, uint8_t y, const char *s, uint8_t n) NONBANKED
+{
+    uint8_t i = 0;
+    if (n > 20) n = 20;
+    for (; i < n && s[i]; i++) {
+        uint8_t c = (uint8_t)s[i];
+        if (c >= 'a' && c <= 'z') c -= 32;
+        if (c < 32 || c > 95) c = 32;
+        tb[i] = (uint8_t)(T_INV + c - 32);
+    }
+    for (; i < n; i++) tb[i] = T_INV;
+    set_bkg_tiles(x, y, n, 1, tb);
+}
+
+void fmt_num(char *d, uint16_t v, uint8_t w) NONBANKED
+{
+    uint8_t i;
+    for (i = 0; i < w; i++) d[i] = ' ';
+    d[w] = 0;
+    i = w;
+    do {
+        d[--i] = (char)('0' + v % 10);
+        v /= 10;
+    } while (v && i);
+}
+
+void put_num(uint8_t x, uint8_t y, uint16_t v, uint8_t w) NONBANKED
+{
+    fmt_num(lb, v, w);
+    put_strn(x, y, lb, w);
+}
+
+void fmt_note(char *d, uint8_t note) NONBANKED
+{
+    static const char nn[] = "C C#D D#E F F#G G#A A#B ";
+    uint8_t pc = note % 12, i = 1;
+    d[0] = nn[pc * 2];
+    if (nn[pc * 2 + 1] == '#') d[i++] = '#';
+    d[i++] = (char)('0' + (note / 12) - 1);
+    if (i < 3) d[i++] = ' ';
+    d[3] = 0;
+}
+
+void fmt_time(char *d, uint16_t s, uint8_t h) NONBANKED
+{
+    uint8_t m = (uint8_t)(s / 60), sec = (uint8_t)(s % 60), i = 0;
+    if (h) { d[i++] = (char)('0' + (h % 10)); d[i++] = ':'; }
+    d[i++] = (char)('0' + m / 10); d[i++] = (char)('0' + m % 10);
+    d[i++] = ':';
+    d[i++] = (char)('0' + sec / 10); d[i++] = (char)('0' + sec % 10);
+    d[i] = 0;
+}
+
+void put_hbar(uint8_t x, uint8_t y, uint8_t w, uint8_t v, uint8_t max) NONBANKED
+{
+    uint16_t px = max ? (uint16_t)((uint16_t)v * (w * 8) / max) : 0;
+    uint8_t i;
+    for (i = 0; i < w; i++) {
+        if (px >= 8) { tb[i] = T_HBAR + 8; px -= 8; }
+        else { tb[i] = (uint8_t)(T_HBAR + px); px = 0; }
+    }
+    set_bkg_tiles(x, y, w, 1, tb);
+}
+
+/* --------------------------------------------------------------- input */
+uint8_t joy_poll(void) NONBANKED
+{
+    uint8_t j = joypad();
+    uint8_t ev = (uint8_t)(j & ~joy_prev);
+    uint8_t dir = j & 0x0F;
+    if (dir && dir == (joy_prev & 0x0F)) {
+        if (rep_cnt < 255) rep_cnt++;
+        if (rep_cnt >= 16 && ((rep_cnt - 16) % 3) == 0) {
+            ev |= dir;
+            if (joy_accel < 255) joy_accel++;
+        }
+    } else {
+        rep_cnt = 0;
+        joy_accel = 0;
+    }
+    joy_prev = j;
+    joy_held = j;
+    return ev;
+}
+
+/* ------------------------------------------------------------ messages */
+void ui_msg(const char *s) NONBANKED
+{
+    uint8_t i;
+    for (i = 0; i < 20 && s[i]; i++) ui_msgbuf[i] = s[i];
+    ui_msgbuf[i] = 0;
+    ui_msg_t = 100;
+}
+
+void ui_hint(const char *s) NONBANKED
+{
+    uint8_t i;
+    for (i = 0; i < 20 && s[i]; i++) ui_hintbuf[i] = s[i];
+    ui_hintbuf[i] = 0;
+}
+
+/* ------------------------------------------------------- param lists */
+uint8_t *pd_ptr(const PDesc *d) NONBANKED
+{
+    switch (d->base) {
+    case B_AGENT: return &proj.agent[ui_agent & 7].a[d->off];
+    case B_INST:  return &proj.inst[ui_inst & 7].p[d->off];
+    case B_HARM:  return &proj.harm[d->off];
+    case B_ECO:   return &proj.eco[d->off];
+    case B_GLOB:  return &proj.glob[d->off];
+    case B_SCENE: return &proj.scene[ui_scene & 7].s[d->off];
+    case B_MOD:   return (uint8_t *)&proj.mod[ui_mod & 3] + d->off;
+    case B_MACRO: return &proj.macro[d->off];
+    case B_MOTIF: return (uint8_t *)&proj.motif[ui_motif & 3] + d->off;
+    case B_UI:    return &ui_var[d->off & 7];
+    default:      return 0;
+    }
+}
+
+static const char agent_letters[] = "OBDSTERM";
+
+static void fmt_val(const PDesc *d, uint8_t v, char *o)
+{
+    uint8_t i;
+    memset(o, ' ', 9);
+    o[9] = 0;
+    switch (d->fmt) {
+    case F_NAME:
+        if (d->names) { const char *s = d->names[(uint8_t)(v - d->min)]; for (i = 0; i < 9 && s[i]; i++) o[i] = s[i]; }
+        break;
+    case F_NOTE: fmt_note(o, v); o[3] = ' '; fmt_num(o + 4, v, 3); o[7] = ' '; break;
+    case F_SIGNED: {
+        int16_t x = (int16_t)v - d->bias;
+        o[0] = x < 0 ? '-' : (x > 0 ? '+' : ' ');
+        fmt_num(o + 1, (uint16_t)(x < 0 ? -x : x), 3);
+        o[4] = ' ';
+        break; }
+    case F_ONOFF: o[0] = 'O'; o[1] = v ? 'N' : 'F'; o[2] = v ? ' ' : 'F'; break;
+    case F_BAR: {
+        uint8_t k;
+        fmt_num(o, v, 2);
+        o[2] = ' ';
+        for (k = 0; k < 6; k++) o[3 + k] = (char)(k < (uint8_t)((v * 6 + 7) / (d->max ? d->max : 15)) ? '|' : '.');
+        break; }
+    case F_BITS:
+        for (i = 0; i < 8; i++) o[i] = (v >> i) & 1 ? 'x' : '.';
+        break;
+    case F_MASK:
+        for (i = 0; i < 8; i++) o[i] = (v >> i) & 1 ? agent_letters[i] : '.';
+        break;
+    case F_INSTR:
+        if (v >= NUM_INST) { o[0] = '-'; o[1] = '-'; break; }
+        o[0] = (char)('1' + v); o[1] = ' ';
+        for (i = 0; i < INST_NAME_LEN; i++) o[2 + i] = proj.inst[v].name[i];
+        break;
+    case F_ACTION:
+        if (d->names) { const char *s = d->names[0]; for (i = 0; i < 9 && s[i]; i++) o[i] = s[i]; }
+        break;
+    case F_KEEP:
+        if (v >= d->max) { o[0] = 'K'; o[1] = 'E'; o[2] = 'E'; o[3] = 'P'; }
+        else fmt_num(o, v, 3);
+        break;
+    case F_SEC4: fmt_num(o, (uint16_t)v * 4, 3); o[3] = 's'; break;
+    case F_LEN15: fmt_time(o, (uint16_t)v * 15, 0); o[5] = ' '; break;
+    case F_TEMPO0:
+        if (v < 30) { o[0] = 'K'; o[1] = 'E'; o[2] = 'E'; o[3] = 'P'; }
+        else { fmt_num(o, v, 3); o[3] = ' '; o[4] = 'B'; o[5] = 'P'; o[6] = 'M'; }
+        break;
+    case F_LEN30: fmt_time(o, (uint16_t)v * 30, 0); o[5] = ' '; break;
+    case F_VOL:
+        if (!v) { o[0] = 'P'; o[1] = 'A'; o[2] = 'T'; o[3] = 'C'; o[4] = 'H'; }
+        else fmt_num(o, v, 3);
+        break;
+    case F_DUR:
+    case F_RATE: {
+        uint16_t fr;
+        if (d->fmt == F_RATE && proj.glob[GP_TMODE] == TM_CLOCKED) {
+            fmt_num(o, rate_steps(v), 3); o[3] = ' '; o[4] = 'S'; o[5] = 'T'; o[6] = 'E'; o[7] = 'P';
+            break;
+        }
+        fr = d->fmt == F_DUR ? dur_frames(v) : rate_frames(v);
+        fr = (uint16_t)((fr + 3) / 6);              /* tenths of a second */
+        fmt_num(o, fr / 10, 3);
+        o[3] = '.'; o[4] = (char)('0' + fr % 10); o[5] = 's';
+        break; }
+    default: fmt_num(o, (uint16_t)((int16_t)v - d->bias), 3); break;
+    }
+    for (i = 0; i < 9; i++) if (!o[i]) o[i] = ' ';
+}
+
+void list_row(const PDesc *t, uint8_t i, uint8_t y, uint8_t sel) NONBANKED
+{
+    const PDesc *d = &t[i];
+    uint8_t *p = pd_ptr(d);
+    char v[10];
+    put_tile(0, y, sel ? T_CURSOR : 0);
+    if (sel) put_inv(1, y, d->label, 9); else put_strn(1, y, d->label, 9);
+    put_tile(10, y, 0);
+    if (d->fmt == F_ACTION || !p) {
+        fmt_val(d, 0, v);
+        put_strn(11, y, v, 9);
+        return;
+    }
+    fmt_val(d, *p, v);
+    if (sel && (d->fmt == F_MASK || d->fmt == F_BITS)) {
+        put_strn(11, y, v, 9);
+        lb[0] = v[ui_sub & 7]; lb[1] = 0;
+        put_inv((uint8_t)(11 + (ui_sub & 7)), y, lb, 1);
+    } else put_strn(11, y, v, 9);
+}
+
+void list_draw(const PDesc *t, uint8_t n, uint8_t y0, uint8_t vis, uint8_t cur, uint8_t top) NONBANKED
+{
+    uint8_t r;
+    for (r = 0; r < vis; r++) {
+        uint8_t i = (uint8_t)(top + r);
+        if (i < n) list_row(t, i, (uint8_t)(y0 + r), i == cur);
+        else put_strn(0, (uint8_t)(y0 + r), "", 20);
+    }
+    /* scroll indicators */
+    if (top > 0) put_tile(19, y0, T_LARROW);
+    if (top + vis < n) put_tile(19, (uint8_t)(y0 + vis - 1), T_RARROW);
+}
+
+uint8_t list_input(const PDesc *t, uint8_t n, uint8_t *cur, uint8_t *top, uint8_t vis, uint8_t keys) NONBANKED
+{
+    const PDesc *d = &t[*cur];
+    uint8_t *p;
+    if (keys & K_UP) {
+        ui_sub = 0;
+        if (*cur == 0) return LI_NONE;
+        (*cur)--;
+        if (*cur < *top) { *top = *cur; return LI_SCROLL; }
+        return LI_MOVED;
+    }
+    if (keys & K_DOWN) {
+        ui_sub = 0;
+        if (*cur + 1 >= n) return LI_NONE;
+        (*cur)++;
+        if (*cur >= *top + vis) { *top = (uint8_t)(*cur - vis + 1); return LI_SCROLL; }
+        return LI_MOVED;
+    }
+    if (keys & K_B) return LI_BACK;
+    p = pd_ptr(d);
+    if (d->fmt == F_MASK || d->fmt == F_BITS) {
+        if (keys & K_LEFT) { ui_sub = (uint8_t)((ui_sub + 7) & 7); return LI_CHANGED; }
+        if (keys & K_RIGHT) { ui_sub = (uint8_t)((ui_sub + 1) & 7); return LI_CHANGED; }
+        if ((keys & K_A) && p) { *p ^= (uint8_t)(1 << (ui_sub & 7)); return LI_CHANGED; }
+        return LI_NONE;
+    }
+    if (keys & K_A) return LI_ACTION;
+    if (!p || d->fmt == F_ACTION) return LI_NONE;
+    if (keys & (K_LEFT | K_RIGHT)) {
+        uint8_t range = (uint8_t)(d->max - d->min);
+        uint8_t step = 1, v = *p;
+        if (joy_accel > 10 && range > 40) step = (uint8_t)(range >> 4);
+        if (keys & K_RIGHT) v = (uint8_t)((uint16_t)v + step > d->max ? d->max : v + step);
+        else v = (uint8_t)((int16_t)v - step < (int16_t)d->min ? d->min : v - step);
+        if (v != *p) { *p = v; return LI_CHANGED; }
+    }
+    return LI_NONE;
+}
+
+uint8_t list_run(const PDesc *t, uint8_t n, uint8_t y0, uint8_t vis, uint8_t *cur, uint8_t *top, uint8_t keys) NONBANKED
+{
+    uint8_t old = *cur;
+    uint8_t r = list_input(t, n, cur, top, vis, keys);
+    if (r == LI_SCROLL) list_draw(t, n, y0, vis, *cur, *top);
+    else if (r == LI_MOVED) {
+        list_row(t, old, (uint8_t)(y0 + old - *top), 0);
+        list_row(t, *cur, (uint8_t)(y0 + *cur - *top), 1);
+        if (*top > 0) put_tile(19, y0, T_LARROW);
+        if (*top + vis < n) put_tile(19, (uint8_t)(y0 + vis - 1), T_RARROW);
+    } else if (r == LI_CHANGED) list_row(t, *cur, (uint8_t)(y0 + *cur - *top), 1);
+    return r;
+}
+
+/* ---------------------------------------------------------- text edit */
+static const char charset[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.#&/!?'";
+
+uint8_t text_edit(char *buf, uint8_t len, uint8_t x, uint8_t y, uint8_t keys, uint8_t *pos) NONBANKED
+{
+    uint8_t i, k = 0;
+    if (keys & (K_A | K_B)) { put_strn(x, y, buf, len); return 0; }
+    if (keys & K_LEFT && *pos) (*pos)--;
+    if (keys & K_RIGHT && *pos + 1 < len) (*pos)++;
+    if (keys & (K_UP | K_DOWN)) {
+        uint8_t n = (uint8_t)(sizeof(charset) - 1);
+        for (i = 0; i < n; i++) if (charset[i] == buf[*pos]) { k = i; break; }
+        if (keys & K_UP) k = (uint8_t)((k + 1) % n);
+        else k = (uint8_t)((k + n - 1) % n);
+        buf[*pos] = charset[k];
+    }
+    put_strn(x, y, buf, len);
+    lb[0] = buf[*pos] == ' ' ? '_' : buf[*pos]; lb[1] = 0;
+    put_inv((uint8_t)(x + *pos), y, lb, 1);
+    return 1;
+}
