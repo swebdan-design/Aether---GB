@@ -44,3 +44,11 @@ int8_t rng_spread(Rng *r, uint8_t n) NONBANKED
 {
     return (int8_t)((int8_t)rng_below(r, (uint8_t)(2 * n + 1)) - (int8_t)n);
 }
+
+uint16_t scale128(uint16_t x, uint8_t f) NONBANKED
+{
+    if (x < 256) return (uint16_t)((x * f) >> 7);
+    if (x < 1024) return (uint16_t)(((x >> 2) * f) >> 5);
+    if (x > 4095) x = 4095;
+    return (uint16_t)(((x >> 4) * f) >> 3);
+}

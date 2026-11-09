@@ -82,6 +82,8 @@ static uint8_t chord_root_pc(void)
     return (uint8_t)((deg[eng.hs.degree % n] + eng.hs.root) % 12);
 }
 
+static void build_cache(void);
+
 static void build_mask(void)
 {
     uint16_t m = rot12(scale_mask(eng.hs.scale), eng.hs.root);
@@ -95,6 +97,23 @@ static void build_mask(void)
     }
     if (!m) m = (uint16_t)(1u << r);
     eng.hs.mask = m;
+    build_cache();
+}
+
+/* pre-computed per pitch class tables: the per-note code then needs no
+ * modulo, no variable shifts and no chord recomputation */
+static void build_cache(void)
+{
+    uint8_t pc, cr = chord_root_pc();
+    uint16_t m = eng.hs.mask, ch = eng.hs.chord;
+    eng.hs.croot = cr;
+    for (pc = 0; pc < 12; pc++) {
+        eng.hs.pc_ok[pc] = (uint8_t)(m & 1);
+        if (pc == cr) eng.hs.pc_cons[pc] = 15;
+        else if (ch & 1) eng.hs.pc_cons[pc] = 13;
+        else eng.hs.pc_cons[pc] = proj.harm[HP_IW + (uint8_t)((pc + 12 - cr) % 12)] & 15;
+        m >>= 1; ch >>= 1;
+    }
 }
 
 void harm_refresh(void) BANKED
@@ -122,16 +141,12 @@ void harm_reset(void) BANKED
 
 uint8_t harm_consonance(uint8_t note) BANKED
 {
-    uint8_t pc = note % 12;
-    uint8_t cr = chord_root_pc();
-    if (pc == cr) return 15;
-    if (eng.hs.chord & (1u << pc)) return 13;
-    return proj.harm[HP_IW + (uint8_t)((pc + 12 - cr) % 12)] & 15;
+    return eng.hs.pc_cons[note % 12];
 }
 
 static uint8_t in_mask(uint8_t note)
 {
-    return (eng.hs.mask >> (note % 12)) & 1;
+    return eng.hs.pc_ok[note % 12];
 }
 
 uint8_t harm_quantize(uint8_t note) BANKED
@@ -176,7 +191,8 @@ uint8_t harm_choose(uint8_t target, uint8_t lo, uint8_t hi, uint8_t prev,
     uint8_t tension = ECO8(ECO_TENSION);
     uint8_t memv = ECO8(ECO_MEMORY);
     uint8_t stab = ECO8(ECO_STAB);
-    uint8_t diss, cpref, mstr, cr, regsep;
+    uint8_t diss, cpref, mstr, cr, regsep, pc;
+    uint8_t cmul[16];
     uint8_t mmode = proj.harm[HP_MMODE];
     uint8_t harmac = proj.macro[MAC_HARMONY];
 
@@ -201,61 +217,67 @@ uint8_t harm_choose(uint8_t target, uint8_t lo, uint8_t hi, uint8_t prev,
     cpref = proj.harm[HP_CONS];
     if (eng.eco.resolving) cpref = (uint8_t)(cpref + (proj.harm[HP_RESOL] >> 1));
     if (cpref > 15) cpref = 15;
+    {
+        /* consonance x preference products, built by addition */
+        uint8_t k, acc = 0;
+        for (k = 0; k < 16; k++) { cmul[k] = acc; acc = (uint8_t)(acc + cpref); }
+    }
     mstr = (uint8_t)(proj.harm[HP_MSTR] + ((memv * proj.eco[EP_INF_M]) >> 9));
     if (mstr > 15) mstr = 15;
-    cr = chord_root_pc();
+    cr = eng.hs.croot;
     regsep = proj.harm[HP_REGSEP];
+    (void)cr;
+    {
+        /* notes sounding on the other channels, for register separation */
+        uint8_t i2, ns = 0;
+        uint8_t snd[3];
+        if (regsep)
+            for (i2 = 0; i2 < NUM_CH - 1; i2++)
+                if ((int16_t)(eng.vc[i2].until - eng.gtime) > 0) snd[ns++] = eng.vc[i2].note;
 
-    count = 0;
-    for (n = start; n <= end && count < 25; n++, count++) {
-        uint8_t pc = n % 12;
-        int16_t sc = 34;
-        uint8_t cons, d;
-        if (!in_mask(n)) {
-            if (adherence >= 15) { w[count] = 0; continue; }
-            sc -= (int16_t)(adherence * 2) + 4;
-        }
-        d = n > target ? (uint8_t)(n - target) : (uint8_t)(target - n);
-        sc -= (int16_t)(d * 2);
-        /* consonance against current chord */
-        if (pc == cr) cons = 15;
-        else if (eng.hs.chord & (1u << pc)) cons = 13;
-        else cons = proj.harm[HP_IW + (uint8_t)((pc + 12 - cr) % 12)] & 15;
-        if (!diss) sc += (int16_t)((cons * cpref) >> 3);
-        else sc += (int16_t)(((15 - cons) * 12) >> 3);
-        /* harmonic memory */
-        if (mstr) {
-            uint8_t h = eng.hs.pc_hist[pc];
-            if (mmode == MM_REINFORCE) sc += (int16_t)((h * mstr) >> 8);
-            else if (mmode == MM_EXPLORE) sc -= (int16_t)((h * mstr) >> 8);
-            else {
-                uint8_t nb = (uint8_t)((eng.hs.pc_hist[(pc + 7) % 12] >> 1) + (eng.hs.pc_hist[(pc + 5) % 12] >> 1));
-                sc += (int16_t)(((int16_t)nb - (int16_t)h) * mstr >> 8);
+        count = 0;
+        pc = start % 12;
+        for (n = start; n <= end && count < 25; n++, count++, pc = (uint8_t)(pc == 11 ? 0 : pc + 1)) {
+            int16_t sc = 34;
+            uint8_t cons, d;
+            if (!eng.hs.pc_ok[pc]) {
+                if (adherence >= 15) { w[count] = 0; continue; }
+                sc -= (int16_t)(adherence * 2) + 4;
             }
-        }
-        /* melodic motion relative to the previous note */
-        if (prev) {
-            uint8_t iv = n > prev ? (uint8_t)(n - prev) : (uint8_t)(prev - n);
-            if (iv == 0) sc -= (int16_t)(6 - (stab >> 6));
-            else if (iv > 7) sc -= (int16_t)((iv - 7) * 2);
-            sc += (int16_t)(proj.harm[HP_IW + (iv % 12)] >> 2);
-        }
-        /* register separation from sounding notes on other channels */
-        if (regsep) {
-            uint8_t c;
-            for (c = 0; c < NUM_CH - 1; c++) {
-                if ((int16_t)(eng.vc[c].until - eng.gtime) > 0) {
-                    uint8_t o = eng.vc[c].note;
-                    uint8_t dd = n > o ? (uint8_t)(n - o) : (uint8_t)(o - n);
-                    if (dd == 0) sc -= 5;
-                    else if (dd < regsep) sc -= 9;
+            d = n > target ? (uint8_t)(n - target) : (uint8_t)(target - n);
+            sc -= (int16_t)(d * 2);
+            cons = eng.hs.pc_cons[pc];
+            if (!diss) sc += (int16_t)(cmul[cons] >> 3);
+            else sc += (int16_t)(((15 - cons) * 12) >> 3);
+            if (mstr) {
+                uint8_t h = (uint8_t)(eng.hs.pc_hist[pc] >> 4);       /* 0..15 */
+                uint8_t hm = (uint8_t)((h * mstr) >> 4);              /* 0..14 */
+                if (mmode == MM_REINFORCE) sc += hm;
+                else if (mmode == MM_EXPLORE) sc -= hm;
+                else {
+                    uint8_t p7 = pc >= 5 ? (uint8_t)(pc - 5) : (uint8_t)(pc + 7);
+                    uint8_t p5 = pc >= 7 ? (uint8_t)(pc - 7) : (uint8_t)(pc + 5);
+                    uint8_t nb = (uint8_t)((eng.hs.pc_hist[p7] >> 5) + (eng.hs.pc_hist[p5] >> 5));
+                    sc += (int16_t)((((int16_t)nb - (int16_t)h) * (int16_t)mstr) >> 4);
                 }
             }
+            if (prev) {
+                uint8_t iv = n > prev ? (uint8_t)(n - prev) : (uint8_t)(prev - n);
+                if (iv == 0) sc -= (int16_t)(6 - (stab >> 6));
+                else if (iv > 7) sc -= (int16_t)((iv - 7) * 2);
+                sc += (int16_t)(proj.harm[HP_IW + (iv < 12 ? iv : iv - 12 * (iv / 12))] >> 2);
+            }
+            for (i2 = 0; i2 < ns; i2++) {
+                uint8_t o = snd[i2];
+                uint8_t dd = n > o ? (uint8_t)(n - o) : (uint8_t)(o - n);
+                if (dd == 0) sc -= 5;
+                else if (dd < regsep) sc -= 9;
+            }
+            if (sc < 0) sc = 0;
+            if (sc > 63) sc = 63;
+            w[count] = expw[(uint8_t)sc];
+            total += w[count];
         }
-        if (sc < 0) sc = 0;
-        if (sc > 63) sc = 63;
-        w[count] = expw[(uint8_t)sc];
-        total += w[count];
     }
 
     if (total == 0) return harm_quantize(target);

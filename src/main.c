@@ -17,6 +17,7 @@
 #include "engine.h"
 #include "audio.h"
 #include "ui.h"
+#include "gfx.h"
 
 Project proj;
 uint8_t prof_gen_lines, prof_ui_lines, prof_gen_max, prof_ui_max;
@@ -46,6 +47,7 @@ void main(void)
     ui_init();
 
     add_VBL(audio_isr);
+    add_VBL(input_isr);
     set_interrupts(VBL_IFLAG);
     enable_interrupts();
 

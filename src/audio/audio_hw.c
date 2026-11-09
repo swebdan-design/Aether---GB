@@ -38,12 +38,16 @@ typedef struct {
     uint8_t  fade_cnt, level, level_tgt;
     uint8_t  drift_cnt, nidx, nbase;
     uint8_t  env, env_cnt;
+    const uint8_t *p;     /* instrument parameters (cached at trigger) */
+    uint16_t vspan;       /* vibrato span for the current pitch       */
 } ChanRt;
 
 static ChanRt rt[NUM_CH];
 static uint8_t nr51_shadow;
 static uint8_t wave_key, wave_ver;
 static uint8_t isr_rng = 0x5A;
+
+static const uint8_t penv_shift[16] = { 5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 0 };
 
 static const int8_t arp_tab[8][4] = {
     {0, 0, 0, 0},  {0, 12, 0, 12}, {0, 7, 12, 7}, {0, 4, 7, 12},
@@ -102,23 +106,11 @@ static void note_off(uint8_t ch)
     }
 }
 
-static void load_wave(uint8_t a, uint8_t b, uint8_t amt)
+static void load_wave(const uint8_t *w)
 {
     uint8_t i;
-    const uint8_t *wa = live_wave[a & 3];
-    const uint8_t *wb = live_wave[b & 3];
     NR30_REG = 0x00;                 /* channel off: wave RAM is writable */
-    for (i = 0; i < 16; i++) {
-        uint8_t x = wa[i];
-        if (amt) {
-            uint8_t y = wb[i];
-            int8_t hi = (int8_t)(x >> 4), lo = (int8_t)(x & 15);
-            hi += (int8_t)((((int8_t)(y >> 4) - hi) * (int8_t)amt) >> 3);
-            lo += (int8_t)((((int8_t)(y & 15) - lo) * (int8_t)amt) >> 3);
-            x = (uint8_t)(((uint8_t)hi << 4) | ((uint8_t)lo & 15));
-        }
-        AUD3WAVE[i] = x;
-    }
+    for (i = 0; i < 16; i++) AUD3WAVE[i] = w[i];
     NR30_REG = 0x80;
 }
 
@@ -144,6 +136,7 @@ static void play_event(NoteEvent *e)
     c->fade_cnt = 0;
     c->drift_cnt = 0;
     c->env_cnt = 0;
+    c->p = p;
     c->env = p[IP_ENVDIR] ? 0 : e->vol;
     if (p[IP_ENVDIR] && p[IP_ENVPACE] == 0) c->env = e->vol;
 
@@ -173,7 +166,7 @@ static void play_event(NoteEvent *e)
             } else write_freq(ch, c->cur);
         }
     } else if (ch == CH_WAVE) {
-        uint8_t key = (uint8_t)((p[IP_WSLOT] & 3) | ((p[IP_WMORPH] & 3) << 2) | ((e->aux & 15) << 4));
+        uint8_t key = (uint8_t)(p[IP_WSLOT] & 3);
         uint8_t lvl = e->vol >= 11 ? 3 : (e->vol >= 6 ? 2 : (e->vol ? 1 : 0));
         if (p[IP_VOL] && p[IP_VOL] < lvl) lvl = p[IP_VOL];
         f = clamp_f((int16_t)note_freq((uint8_t)(e->note + 12)) + e->detune);
@@ -184,8 +177,11 @@ static void play_event(NoteEvent *e)
         } else c->cur = f;
         c->level_tgt = lvl;
         if (!legato) {
-            if (key != wave_key || live_wave_ver != wave_ver) {
-                load_wave(p[IP_WSLOT], p[IP_WMORPH], e->aux);
+            if (e->aux & AUX_STAGED) {
+                load_wave(wave_stage[e->aux & 1]);
+                wave_key = 0xFF;
+            } else if (key != wave_key || live_wave_ver != wave_ver) {
+                load_wave(live_wave[p[IP_WSLOT] & 3]);
                 wave_key = key; wave_ver = live_wave_ver;
             } else {
                 /* power-cycle the channel before retriggering: avoids the
@@ -208,6 +204,8 @@ static void play_event(NoteEvent *e)
         NR44_REG = 0x80;
     }
 
+    c->vspan = (uint16_t)(((2048 - c->base) >> 6) * p[IP_VIBD]);
+
     /* discrete stereo placement */
     bit = (uint8_t)(1 << ch);
     nr51_shadow &= (uint8_t)~(bit | (bit << 4));
@@ -225,7 +223,7 @@ static void chan_update(uint8_t ch)
     uint16_t f;
 
     if (!c->active) { ch_meter[ch] = 0; return; }
-    p = proj.inst[c->inst].p;
+    p = c->p;
     if (c->age != 255) c->age++;
 
     if (--c->left == 0) { note_off(ch); ch_meter[ch] = 0; return; }
@@ -283,7 +281,7 @@ static void chan_update(uint8_t ch)
     /* pitch envelope: exponential approach toward base */
     if (c->cur != c->base) {
         int16_t d = (int16_t)c->base - (int16_t)c->cur;
-        uint8_t sh = (uint8_t)(5 - ((p[IP_PENVSPD] & 15) / 3));
+        uint8_t sh = penv_shift[p[IP_PENVSPD] & 15];
         int16_t step = d >> sh;
         if (step == 0) step = d > 0 ? 1 : -1;
         c->cur = (uint16_t)((int16_t)c->cur + step);
@@ -298,7 +296,7 @@ static void chan_update(uint8_t ch)
         tri = (int8_t)(c->vib_phase & 0x7F);
         if (tri > 63) tri = 127 - tri;          /* 0..63..0 */
         tri -= 32;                              /* -32..31  */
-        span = (int16_t)(((2048 - f) >> 6) * p[IP_VIBD]);
+        span = (int16_t)c->vspan;
         f = clamp_f((int16_t)f + (int16_t)((span * tri) >> 8));
     }
     if (ch != CH_WAVE || c->level) write_freq(ch, f);

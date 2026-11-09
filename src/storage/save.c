@@ -62,7 +62,8 @@ static uint16_t sram_sum(uint16_t addr, uint16_t n)
     return (uint16_t)((b << 8) | a);
 }
 
-/* returns 1 if copy valid, gen in *gen; 2 if something was written but bad */
+/* returns 0 blank, 1 valid (gen in *gen), 2 damaged header,
+ * 3 valid header but damaged payload (gen in *gen) */
 static uint8_t check_copy(uint8_t slot, uint8_t c, uint8_t *gen)
 {
     uint8_t h[HDR_SIZE];
@@ -80,20 +81,24 @@ static uint8_t check_copy(uint8_t slot, uint8_t c, uint8_t *gen)
     size = (uint16_t)(h[6] | ((uint16_t)h[7] << 8));
     if (size != PROJECT_SIZE) return 2;
     sum = (uint16_t)(h[8] | ((uint16_t)h[9] << 8));
-    if (sram_sum((uint16_t)(addr + HDR_SIZE), size) != sum) return 2;
-    *gen = h[5];
+    *gen = h[5];                    /* header is trustworthy from here on */
+    if (sram_sum((uint16_t)(addr + HDR_SIZE), size) != sum) return 3;
     return 1;
 }
 
 /* newer of two generation counters (mod 256) */
 static uint8_t newer(uint8_t a, uint8_t b) { return (int8_t)(a - b) > 0; }
 
+/* *bad: bit0/1 = copy A/B damaged, bit2 = a damaged copy carries a newer
+ * generation than the valid one (the latest save was lost) */
 static uint8_t best_copy(uint8_t slot, uint8_t *which, uint8_t *gen, uint8_t *bad)
 {
     uint8_t ga = 0, gb = 0;
     uint8_t va = check_copy(slot, 0, &ga);
     uint8_t vb = check_copy(slot, 1, &gb);
-    *bad = (uint8_t)((va == 2) | ((vb == 2) << 1));
+    *bad = (uint8_t)((va >= 2) | ((vb >= 2) << 1));
+    if (va == 3 && vb == 1 && newer(ga, gb)) *bad |= 4;
+    if (vb == 3 && va == 1 && newer(gb, ga)) *bad |= 4;
     if (va == 1 && vb == 1) { *which = newer(gb, ga) ? 1 : 0; *gen = *which ? gb : ga; return 1; }
     if (va == 1) { *which = 0; *gen = ga; return 1; }
     if (vb == 1) { *which = 1; *gen = gb; return 1; }
@@ -103,11 +108,7 @@ static uint8_t best_copy(uint8_t slot, uint8_t *which, uint8_t *gen, uint8_t *ba
 uint8_t slot_status(uint8_t slot) BANKED
 {
     uint8_t w, g, bad;
-    if (best_copy(slot, &w, &g, &bad)) {
-        /* the damaged copy is "newer" only if it was the one being written */
-        if (bad & (uint8_t)(1 << (w ^ 1))) return SLOT_BACKUP;
-        return SLOT_OK;
-    }
+    if (best_copy(slot, &w, &g, &bad)) return (bad & 4) ? SLOT_BACKUP : SLOT_OK;
     return bad ? SLOT_CORRUPT : SLOT_EMPTY;
 }
 
@@ -125,7 +126,20 @@ uint8_t save_slot(uint8_t slot) BANKED
     uint8_t w, g = 0, bad, target, h[HDR_SIZE], chk;
     uint16_t addr, sum, hs;
     if (best_copy(slot, &w, &g, &bad)) { target = w ^ 1; g++; }
-    else { target = 0; g = 1; }
+    else {
+        /* nothing valid: keep generations monotonic past any readable header */
+        uint8_t ga = 0, gb = 0;
+        uint8_t va = check_copy(slot, 0, &ga), vb = check_copy(slot, 1, &gb);
+        target = 0;
+        g = 1;
+        if (va == 3) g = (uint8_t)(ga + 1);
+        if (vb == 3 && (va != 3 || newer(gb, ga))) g = (uint8_t)(gb + 1);
+    }
+    /* never leave a damaged copy that claims to be newer than this save */
+    {
+        uint8_t go = 0;
+        if (check_copy(slot, (uint8_t)(target ^ 1), &go) == 3 && !newer(g, go)) g = (uint8_t)(go + 1);
+    }
     addr = copy_addr(slot, target);
 
     /* 1. invalidate target magic first, 2. payload, 3. header, 4. magic */

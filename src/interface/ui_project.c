@@ -63,16 +63,21 @@ static void seed_row(void)
     put_strn(16, (uint8_t)(2 + R_SEED), "", 3);
 }
 
+static uint8_t slot_state;    /* cached status of the selected slot */
+
 static void slot_info(void)
 {
     static const char * const st[4] = { "EMPTY", "OK", "CORRUPT", "BACKUP" };
     char nm[PROJ_NAME_LEN + 1];
-    uint8_t s = ui_var[3] & 7, k = slot_status(s);
+    uint8_t s = ui_var[3] & 7;
+    slot_state = slot_status(s);
     put_strn(1, 13, "SLOT", 4);
     put_num(6, 13, (uint16_t)(s + 1), 1);
-    put_strn(8, 13, st[k & 3], 8);
-    if (slot_name(s, nm)) put_strn(1, 14, nm, PROJ_NAME_LEN);
-    else put_strn(1, 14, "", 19);
+    put_strn(8, 13, st[slot_state & 3], 8);
+    if (slot_state == SLOT_OK || slot_state == SLOT_BACKUP) {
+        slot_name(s, nm);
+        put_strn(1, 14, nm, PROJ_NAME_LEN);
+    } else put_strn(1, 14, "", 19);
 }
 
 static void draw_top(void)
@@ -219,7 +224,7 @@ void pg_project(uint8_t keys, uint8_t mode) BANKED
         }
         break;
     case R_LOAD:
-        if (slot_status(ui_var[3] & 7) == SLOT_EMPTY || slot_status(ui_var[3] & 7) == SLOT_CORRUPT) {
+        if (slot_state == SLOT_EMPTY || slot_state == SLOT_CORRUPT) {
             ui_msg("NO VALID PROJECT");
             break;
         }

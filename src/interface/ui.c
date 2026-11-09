@@ -21,9 +21,6 @@ uint8_t imprint_next;
 extern char ui_msgbuf[21];
 extern char ui_hintbuf[21];
 
-static const char * const page_names[NUM_PAGES] = {
-    "LIVE", "SYNTH", "AGENTS", "HARMONY", "FORM", "PROJECT"
-};
 static const char * const scale_short[NUM_SCALES] = {
     "MAJOR", "MINOR", "MAJ PENT", "MIN PENT", "DORIAN", "PHRYGIAN", "LYDIAN", "MIXOLYD", "CHROMAT", "USER"
 };
@@ -32,24 +29,6 @@ static const char * const macro_names[NUM_MACROS] = {
     "DENSITY", "EVOLUTION", "HARMONY", "MOTION", "TEXTURE", "SPACE"
 };
 static const char * const roman[7] = { "I  ", "II ", "III", "IV ", "V  ", "VI ", "VII" };
-
-/* ------------------------------------------------------------ header */
-void ui_header(const char *sub) BANKED
-{
-    uint8_t i;
-    char t[12];
-    memset(t, ' ', 11);
-    t[11] = 0;
-    for (i = 0; i < 10 && page_names[ui_page][i]; i++) t[1 + i] = page_names[ui_page][i];
-    put_inv(0, 0, t, 11);
-    if (sub) put_strn(11, 0, sub, 9);
-    else {
-        put_tile(11, 0, 0);
-        for (i = 0; i < NUM_PAGES; i++) put_tile((uint8_t)(12 + i), 0, i == ui_page ? T_PAGE_ON : T_PAGE_OFF);
-        put_tile(18, 0, 0);
-    }
-    put_tile(19, 0, eng.playing ? T_PLAY : T_STOP);
-}
 
 static uint8_t last_msg_shown = 1;
 static void draw_hint(void)
@@ -139,8 +118,20 @@ static void trace_px(uint8_t x, uint8_t y, uint8_t c)
 
 static void trace_col_clear(uint8_t x, uint8_t c)
 {
-    uint8_t y;
-    for (y = 0; y < 32; y++) trace_px(x, y, (y & 1) == 0 ? c : 0);
+    /* clear one pixel column across the 4 tile rows with direct byte ops;
+     * c = 1 draws the dotted sweep cursor */
+    uint8_t ty, r;
+    uint8_t bit = (uint8_t)(0x80 >> (x & 7));
+    uint8_t nbit = (uint8_t)~bit;
+    uint8_t tile = (uint8_t)(x >> 3);
+    for (ty = 0; ty < 4; ty++, tile += 16) {
+        uint8_t *p = &trace[(uint16_t)tile << 4];
+        for (r = 0; r < 8; r++, p += 2) {
+            p[1] &= nbit;
+            if (c && !(r & 1)) p[0] |= bit; else p[0] &= nbit;
+        }
+        dirty[tile >> 3] |= (uint8_t)(1 << (tile & 7));
+    }
 }
 
 static void trace_upload(uint8_t maxn)

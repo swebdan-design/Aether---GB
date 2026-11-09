@@ -26,7 +26,7 @@ extern uint8_t imprint_next;
 void ui_init(void) BANKED;
 void ui_title(void) BANKED;            /* blocking title screen */
 void ui_frame(void) BANKED;            /* one UI frame          */
-void ui_header(const char *sub) BANKED;
+void ui_header(const char *sub) NONBANKED;   /* bank 0: takes strings from any bank */
 void ui_redraw(void) BANKED;
 void ui_toggle_play(void) BANKED;
 

@@ -170,7 +170,7 @@ uint8_t emit_note(uint8_t agent, uint8_t inst, uint8_t note, uint8_t dur4,
     /* duration */
     dur = (uint16_t)dur4 * 4;
     dur = (uint16_t)((dur * (I[IP_LEN] ? I[IP_LEN] : 8)) >> 3);
-    if (eng.mod[MD_LENGTH]) dur = (uint16_t)(((uint32_t)dur * (uint16_t)(128 + eng.mod[MD_LENGTH])) >> 7);
+    if (eng.mod[MD_LENGTH]) dur = scale128(dur, (uint8_t)(128 + eng.mod[MD_LENGTH]));
     if (dur < 2) dur = 2;
     if (dur > 4000) dur = 4000;
 
@@ -203,7 +203,11 @@ uint8_t emit_note(uint8_t agent, uint8_t inst, uint8_t note, uint8_t dur4,
         int8_t a = (int8_t)I[IP_WAMT] + eng.mod[MD_WAVE] / 16;
         if (a < 0) a = 0;
         if (a > 8) a = 8;
-        e.aux = (uint8_t)a;
+        if (a && (I[IP_WMORPH] & 3) != (I[IP_WSLOT] & 3)) {
+            eng.stage_k ^= 1;
+            wave_blend(I[IP_WSLOT], I[IP_WMORPH], (uint8_t)a, wave_stage[eng.stage_k]);
+            e.aux = (uint8_t)(AUX_STAGED | eng.stage_k);
+        }
     } else if (itype == IT_PULSE && eng.mod[MD_DUTY]) {
         e.aux = (uint8_t)((((int8_t)I[IP_SHAPE] + eng.mod[MD_DUTY] / 32) & 3) + 1);
     }
@@ -289,8 +293,8 @@ void phrase_start(const MotifNote *n, uint8_t len, uint8_t base, uint8_t agent,
 static void phrase_tick(void)
 {
     uint8_t i;
-    for (i = 0; i < NUM_PHRASE; i++) {
-        Phrase *p = &eng.ph[i];
+    Phrase *p = eng.ph;
+    for (i = 0; i < NUM_PHRASE; i++, p++) {
         MotifNote *m;
         if (!p->active) continue;
         if ((int16_t)(eng.gtime - p->next) < 0) continue;
@@ -318,17 +322,18 @@ static void texture_tick(void)
     uint8_t ti = proj.glob[GP_TEXINST];
     const uint8_t *I;
     uint16_t prob;
-    uint8_t bit, steplen;
+    uint8_t bit;
     if (ti >= NUM_INST) return;
-    I = proj.inst[ti].p;
-    if (I[IP_TYPE] != IT_NOISE) return;
-
+    /* cheap early-out before touching the instrument (every frame) */
     if (proj.glob[GP_TMODE] == TM_CLOCKED) {
         if (!eng.step) return;
+        I = proj.inst[ti].p;
+        if (I[IP_TYPE] != IT_NOISE) return;
     } else {
-        steplen = (uint8_t)(6 + (15 - (I[IP_DENS] & 15)));
-        if (++eng.tex_timer < steplen) return;
-        eng.tex_timer = 0;
+        if (eng.tex_timer) { eng.tex_timer--; return; }
+        I = proj.inst[ti].p;
+        if (I[IP_TYPE] != IT_NOISE) return;
+        eng.tex_timer = (uint8_t)(5 + (15 - (I[IP_DENS] & 15)));
     }
     eng.tex_pos = (eng.tex_pos + 1) & 7;
     bit = (uint8_t)((I[IP_PATTERN] >> eng.tex_pos) & 1);
@@ -344,7 +349,7 @@ static void texture_tick(void)
     prob = (uint16_t)(I[IP_DENS] & 15) * 6;
     prob = (prob * (uint16_t)(proj.macro[MAC_TEXTURE] + 1)) >> 3;
     prob = (prob * (uint16_t)(eng.tex_act + 64)) >> 8;
-    prob = (uint16_t)((int16_t)prob + (eco_infl(ECO_ENERGY, 10) >> 1));
+    prob = (uint16_t)((int16_t)prob + (ECO_INFL(ECO_ENERGY, 10) >> 1));
     if ((int16_t)prob < 0) prob = 0;
     if (!bit) prob = (prob * (I[IP_IRREG] & 15)) >> 4;
     else if (I[IP_IRREG] && rng_chance(&eng.rng, (uint8_t)(I[IP_IRREG] * 5))) prob = 0;

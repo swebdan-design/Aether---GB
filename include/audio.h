@@ -42,6 +42,11 @@ void    aq_clear(void) NONBANKED;
  * operate on these copies so the project's stored waves stay intact */
 extern uint8_t live_wave[NUM_WAVES][16];
 extern volatile uint8_t live_wave_ver;   /* bumped on every change */
+/* morphed waves are rendered by the generator (main loop) into one of two
+ * staging buffers; a wave event with aux bit 7 set tells the driver to copy
+ * buffer (aux & 1) so the interrupt never computes a blend itself */
+extern uint8_t wave_stage[2][16];
+#define AUX_STAGED 0x80
 
 /* --- hardware driver (Game Boy only) ------------------------------ */
 extern volatile uint16_t audio_now;       /* frame counter            */

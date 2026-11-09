@@ -1,0 +1,65 @@
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+AETHER emulator tests  ROM: build/AETHER_by_Synth_Centric.gb
+  PASS cartridge header: MBC5+RAM+BATTERY, 32KB SRAM, DMG mode  [type=1B rom=02 ram=03 cgb=00]
+  PASS ROM size matches header  [131072]
+  PASS title: logo tiles drawn (AETHER)
+  PASS title: 'by Synth Centric' directly beneath the logo  [  by Synth Centric  ]
+  PASS title: 'generative ambient instrument'
+  PASS title: not playing before user input
+  PASS START on title -> LIVE page  [ LIVE       ~~~~~~ ~]
+  PASS playback started
+  PASS VBlank audio clock advances 1/frame  [1800]
+  PASS generative events produced (30 s)  [30]
+  PASS audio output from DMG sound hardware  [rms=0.90]
+  PASS LIVE shows project, macros, scene, hint  [FIRST LIGHT         ]
+  PASS IMPRINT capture (LIVE, A) stores a motif  [len=3 msg=IMPRINT 1 CAPTURED 3]
+  PASS IMPRINT confirmation shown  [IMPRINT 1 CAPTURED 3]
+  PASS LIVE macro DENSITY editable  [3->5]
+  PASS SELECT cycles the six pages
+  PASS playback continues while navigating
+  PASS instrument editor opens (PULSE LAB)  [ TYPE      PULSE    ]
+  PASS PULSE LAB: VOLUME edit changes instrument 1  [11->10]
+  PASS A auditions the edited instrument  [A:HEAR B:BACK       ]
+  PASS WAVE LAB opens  [ SYNTH     WAVE LAB~]
+  PASS WAVE LAB: D-pad draws sample 0 of wave 1  [8->5]
+  PASS AGENTS: ORBIT enable toggles
+  PASS AGENTS: ORBIT activity editable  [9->8]
+  PASS ECOLOGY screen shows the four variables  [ ENERGY   ~~~~~~  45]
+  PASS HARMONY: scale selection  [~SCALE     MINOR    ]
+  PASS FORM: FIRST LIGHT runs in FREE time
+  PASS FORM: switch to CLOCKED
+  PASS CLOCKED mode generates events  [9]
+  PASS FORM: back to FREE
+  PASS FORM: manual scene change  [scene=2]
+  PASS PROJECT: seed editable  [24301->24306]
+  PASS save asks for confirmation  [A AGAIN: SAVE SLOT  ]
+  PASS save verified  [SAVED + VERIFIED    ]
+  PASS slot 1 reports OK  [ SLOT 1 OK          ]
+  PASS power cycle + LOAD restores the saved project  [boot=24301 loaded=24306 saved=24306]
+  PASS loaded name matches
+  PASS playback after load
+  PASS STOP silences all channels (no stuck notes)  [rms=0.000]
+  extended playback: 60 emulated minutes...
+  PASS extended playback still running after 60 min
+  PASS form clock tracks emulated time  [1h 0s]
+  PASS music continues throughout (events every 10-min window)  [0]
+  PASS long-form development (scene transitions)  [22]
+  PASS no event queue overflow  [0]
+  FAIL generator: average cost < 25% of a frame  [avg 41.5 lines, p99 255]
+  PASS VBlank driver: average cost < 15% of a frame  [avg 16.4 lines of 154]
+  PASS VBlank driver: worst frame < 50% of a frame  [max 57, p99 36]
+  PASS generator max lag within look-ahead  [3]
+  long run took 50.2 s wall clock
+  PASS 8 agents at max activity for 5 min: still running
+  PASS 8 agents: no queue overflow  [0]
+  PASS 8 agents: generator keeps within look-ahead  [1]
+  PASS demo first_light recorded from ROM (90s)  [rms=1.03]
+  PASS demo pale_transmission recorded from ROM (90s)  [rms=5.78]
+  PASS demo static_memory recorded from ROM (90s)  [rms=1.42]
+  PASS demo dissolving_light recorded from ROM (90s)  [rms=2.15]
+  PASS demo empty_rooms recorded from ROM (90s)  [rms=0.88]
+  PASS demo glass_orbit recorded from ROM (90s)  [rms=0.49]
+  PASS demo night_current recorded from ROM (90s)  [rms=5.93]
+  PASS demo soft_machines recorded from ROM (90s)  [rms=0.46]
+  PASS demo afterimage recorded from ROM (90s)  [rms=3.95]
+59 / 60 emulator checks passed

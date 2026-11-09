@@ -24,8 +24,9 @@ static void set_eco_targets(void)
     for (i = 0; i < 4; i++) {
         int16_t t = (int16_t)(eng.form.live.s[SC_ENERGY + i] & 15) * 17 +
                     ((int16_t)proj.eco[EP_BIAS_E + i] - 8) * 12;
-        if (t < 0) t = 0;
-        if (t > 255) t = 255;
+        /* baselines stay off the rails so no variable can rest saturated */
+        if (t < 8) t = 8;
+        if (t > 240) t = 240;
         eng.eco.target[i] = (uint8_t)t;
     }
 }

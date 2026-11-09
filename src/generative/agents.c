@@ -34,6 +34,10 @@ static const int8_t orbit_sets[8][6] = {
     {0, 2, 5, 7, 9, -3}        /* PENTA   */
 };
 
+/* DENSITY x(D+6)/14 and SPACE x(40-S)/40 as /128 fixed-point factors */
+static const uint8_t dens_fac[16] = { 55, 64, 73, 82, 91, 101, 110, 119, 128, 137, 146, 155, 165, 174, 183, 192 };
+static const uint8_t space_fac[16] = { 128, 125, 122, 118, 115, 112, 109, 106, 102, 99, 96, 93, 90, 86, 83, 80 };
+
 /* ------------------------------------------------------------ helpers */
 static uint8_t in_scene(uint8_t i)
 {
@@ -54,11 +58,11 @@ static void range_of(uint8_t i, uint8_t *lo, uint8_t *hi)
 
 static uint8_t dur4_for(uint8_t i, uint8_t idx)
 {
-    uint32_t d = dur_frames(idx);
-    int8_t s = eco_infl(ECO_STAB, CFG(i)[AP_ECO]);           /* -64..64 */
-    d = (d * (uint16_t)(128 + s)) >> 7;
+    uint16_t d = dur_frames(idx);
+    int8_t s = ECO_INFL(ECO_STAB, CFG(i)[AP_ECO]);           /* -64..64 */
+    d = scale128(d, (uint8_t)(128 + s));
     if (CFG(AG_TIDE)[AP_EN] && i != AG_TIDE)
-        d = (d * (uint16_t)(384 - eng.tide)) >> 8;            /* high tide: shorter */
+        d = scale128(d, (uint8_t)((384 - eng.tide) >> 1));     /* high tide: shorter */
     d >>= 2;
     if (d < 1) d = 1;
     if (d > 255) d = 255;
@@ -74,12 +78,11 @@ static uint8_t pick_dur_idx(uint8_t i, Rng *r)
 
 static uint8_t fire_ok(uint8_t i, Rng *r)
 {
-    int16_t p = (int16_t)CFG(i)[AP_ACT] * 16;
-    p = (int16_t)((p * (int16_t)(proj.macro[MAC_DENSITY] + 6)) / 14);   /* DENSITY  x0.43..x1.5 */
-    p = (int16_t)((p * (int16_t)(40 - proj.macro[MAC_SPACE])) / 40);    /* SPACE    x1..x0.63   */
-    p += eco_infl(ECO_ENERGY, CFG(i)[AP_ECO]) / 2;
+    int16_t p = (int16_t)scale128((uint16_t)(CFG(i)[AP_ACT] * 16), dens_fac[proj.macro[MAC_DENSITY] & 15]);
+    p = (int16_t)scale128((uint16_t)p, space_fac[proj.macro[MAC_SPACE] & 15]);
+    p += ECO_INFL(ECO_ENERGY, CFG(i)[AP_ECO]) / 2;
     if (CFG(AG_TIDE)[AP_EN] && i != AG_TIDE)
-        p = (int16_t)((p * (int16_t)(eng.tide + 128)) >> 8);
+        p = (int16_t)scale128((uint16_t)p, (uint8_t)((eng.tide + 128) >> 1));
     p += eng.mod[MD_DENSITY] / 2;
     if (p < 0) p = 0;
     if (p > 250) p = 250;
@@ -89,8 +92,8 @@ static uint8_t fire_ok(uint8_t i, Rng *r)
 static uint8_t mut_prob(uint8_t i)
 {
     int16_t p = (int16_t)CFG(i)[AP_MUT] * 8 + (int16_t)proj.macro[MAC_EVOLUTION] * 5 + eng.mod[MD_MUTATE] / 2;
-    p += eco_infl(ECO_TENSION, CFG(i)[AP_ECO]) / 2;
-    p -= eco_infl(ECO_STAB, CFG(i)[AP_ECO]) / 2;
+    p += ECO_INFL(ECO_TENSION, CFG(i)[AP_ECO]) / 2;
+    p -= ECO_INFL(ECO_STAB, CFG(i)[AP_ECO]) / 2;
     if (p < 0) p = 0;
     if (p > 240) p = 240;
     return (uint8_t)p;
@@ -100,7 +103,7 @@ static uint8_t adherence(uint8_t i)
 {
     int16_t h = CFG(i)[AP_HARM];
     if (eng.eco.resolving) h += 4;
-    h -= eco_infl(ECO_TENSION, CFG(i)[AP_ECO]) / 24;
+    h -= ECO_INFL(ECO_TENSION, CFG(i)[AP_ECO]) / 24;
     if (h < 0) h = 0;
     if (h > 15) h = 15;
     return (uint8_t)h;
@@ -239,7 +242,7 @@ static void bloom_develop(uint8_t i)
         if (s->len + s->mlen <= maxlen) {
             int8_t anchor = s->pat[s->len - 1] == REST ? 0 : s->pat[s->len - 1];
             int8_t shift = rng_spread(r, 3);
-            uint8_t branch = rng_chance(r, (uint8_t)(CFG(i)[AP_P2] * 12 + (eco_infl(ECO_TENSION, CFG(i)[AP_ECO]) > 0 ? 40 : 0)));
+            uint8_t branch = rng_chance(r, (uint8_t)(CFG(i)[AP_P2] * 12 + (ECO_INFL(ECO_TENSION, CFG(i)[AP_ECO]) > 0 ? 40 : 0)));
             uint8_t retro = branch && (rng8(r) & 1);
             for (k = 0; k < s->mlen; k++) {
                 uint8_t src = retro ? (uint8_t)(s->mlen - 1 - k) : k;
@@ -263,7 +266,7 @@ static void bloom_develop(uint8_t i)
         ECO_IMPULSE(ECO_ENERGY, -3);
         if (s->len <= s->mlen) {
             /* return to the origin motif, or let it mutate */
-            int16_t pr = 90 + eco_infl(ECO_MEMORY, CFG(i)[AP_ECO]) * 2;
+            int16_t pr = 90 + ECO_INFL(ECO_MEMORY, CFG(i)[AP_ECO]) * 2;
             if (pr < 0) pr = 0;
             if (rng_chance(r, (uint8_t)(pr > 250 ? 250 : pr))) {
                 ECO_IMPULSE(ECO_MEMORY, 10);
@@ -321,7 +324,7 @@ static void drift_fire(uint8_t i)
     range_of(i, &lo, &hi);
     s->centre = harm_centre(lo, hi);
     maxs = (int8_t)(CFG(i)[AP_P1] ? CFG(i)[AP_P1] : 1);
-    e = eco_infl(ECO_ENERGY, CFG(i)[AP_ECO]);
+    e = ECO_INFL(ECO_ENERGY, CFG(i)[AP_ECO]);
     if (e > 0) maxs += (int8_t)(e >> 5);
     maxs += (int8_t)(proj.macro[MAC_MOTION] / 6);
     if (maxs > 7) maxs = 7;
@@ -329,7 +332,7 @@ static void drift_fire(uint8_t i)
     bias = (int8_t)CFG(i)[AP_P2] - 7;
     if (bias && rng_below(r, 16) < (uint8_t)((bias > 0 ? bias : -bias) * 2)) step += bias > 0 ? 1 : -1;
     {
-        int16_t pr = (int16_t)CFG(i)[AP_P3] * 12 + eco_infl(ECO_STAB, CFG(i)[AP_ECO]);
+        int16_t pr = (int16_t)CFG(i)[AP_P3] * 12 + ECO_INFL(ECO_STAB, CFG(i)[AP_ECO]);
         if (pr > 0 && rng_chance(r, (uint8_t)(pr > 250 ? 250 : pr)) && cur) {
             int8_t back = cur > 0 ? -cur : (int8_t)-cur;
             if (back > maxs) back = maxs;
@@ -378,7 +381,7 @@ static void scatter_fire(uint8_t i)
     }
     /* event clustering */
     if (!s->cluster) {
-        int16_t pc = (int16_t)CFG(i)[AP_P1] * 14 + eco_infl(ECO_ENERGY, CFG(i)[AP_ECO]);
+        int16_t pc = (int16_t)CFG(i)[AP_P1] * 14 + ECO_INFL(ECO_ENERGY, CFG(i)[AP_ECO]);
         if (pc > 0 && rng_chance(r, (uint8_t)(pc > 240 ? 240 : pc))) s->cluster = (uint8_t)(1 + rng_below(r, 4));
     } else s->cluster--;
 }
@@ -447,7 +450,7 @@ static void echo_fire(uint8_t i)
     int16_t p;
     uint8_t idx[MOTIF_MAX];
 
-    p = (int16_t)CFG(i)[AP_ACT] * 16 + eco_infl(ECO_MEMORY, CFG(i)[AP_ECO]) + (int16_t)proj.macro[MAC_SPACE] * 4;
+    p = (int16_t)CFG(i)[AP_ACT] * 16 + ECO_INFL(ECO_MEMORY, CFG(i)[AP_ECO]) + (int16_t)proj.macro[MAC_SPACE] * 4;
     p = (int16_t)((p * (int16_t)(proj.macro[MAC_DENSITY] + 6)) / 14);
     if (p <= 0 || !rng_chance(r, (uint8_t)(p > 250 ? 250 : p))) return;
     if (eng.hcount < 3) return;
@@ -455,14 +458,14 @@ static void echo_fire(uint8_t i)
     want = (uint8_t)(3 + rng_below(r, 4));
     /* newest non-echo entry, optionally a few events further back */
     for (k = (uint8_t)rng_below(r, 6); k < eng.hcount; k++) {
-        HistEv *h = &eng.hist[hist_recent(k)];
+        HistEv *h = &eng.hist[HIST_IDX(k)];
         if ((uint16_t)(eng.gtime - h->time) > 2400) break;        /* only recent material */
         if (h->agent < NUM_AGENTS && h->agent != AG_ECHO) { src_agent = h->agent; break; }
     }
     if (src_agent == 0xFF) return;
     /* gather that agent's notes (newest first) */
     for (; k < eng.hcount && got < want; k++) {
-        uint8_t hi_ = hist_recent(k);
+        uint8_t hi_ = HIST_IDX(k);
         if (eng.hist[hi_].agent == src_agent) idx[got++] = hi_;
     }
     if (got < 2) return;
@@ -588,7 +591,7 @@ static void memory_fire(uint8_t i)
         motif_auto_capture(0xFF);
     }
     /* recall a phrase from the motif library */
-    pr = (int16_t)CFG(i)[AP_P1] * 8 + eco_infl(ECO_MEMORY, CFG(i)[AP_ECO]);
+    pr = (int16_t)CFG(i)[AP_P1] * 8 + ECO_INFL(ECO_MEMORY, CFG(i)[AP_ECO]);
     if (pr > 0 && rng_chance(r, (uint8_t)(pr > 200 ? 200 : pr))) {
         Motif *m = motif_pick(r, i);
         if (m) { motif_play(m, i, 0); return; }
@@ -625,24 +628,24 @@ static uint16_t next_interval(uint8_t i)
     uint8_t *c = CFG(i);
     AgentState *s = &eng.ag[i];
     uint8_t clocked = proj.glob[GP_TMODE] == TM_CLOCKED;
-    uint32_t x;
+    uint16_t x;
     int8_t e;
 
     if (i == AG_SCATTER && s->cluster) return clocked ? 1 : (uint16_t)(3 + rng_below(&s->rng, 6));
 
     x = clocked ? rate_steps(c[AP_RATE]) : rate_frames(c[AP_RATE]);
-    x = (x * (uint16_t)(24 - proj.macro[MAC_MOTION])) >> 4;
-    e = eco_infl(ECO_ENERGY, c[AP_ECO]);
-    x = (x * (uint16_t)(128 - e)) >> 7;
-    if (CFG(AG_TIDE)[AP_EN] && i != AG_TIDE) x = (x * (uint16_t)(384 - eng.tide)) >> 8;
-    if (eng.erosion && i != AG_ERODE) x += (x * eng.erosion) >> 9;
+    x = scale128(x, (uint8_t)((24 - proj.macro[MAC_MOTION]) << 3));     /* MOTION */
+    e = ECO_INFL(ECO_ENERGY, c[AP_ECO]);
+    x = scale128(x, (uint8_t)(128 - e));                                 /* ENERGY */
+    if (CFG(AG_TIDE)[AP_EN] && i != AG_TIDE) x = scale128(x, (uint8_t)((384 - eng.tide) >> 1));
+    if (eng.erosion && i != AG_ERODE) x += scale128(x, (uint8_t)(eng.erosion >> 2));
     if (c[AP_JIT]) {
         if (clocked) {
             if (rng_chance(&s->rng, (uint8_t)(c[AP_JIT] * 10))) x += rng_below(&s->rng, (uint8_t)(1 + (c[AP_JIT] >> 2)));
         } else {
-            uint16_t j = (uint16_t)((x * c[AP_JIT]) >> 4);
+            uint16_t j = scale128(x, (uint8_t)(c[AP_JIT] << 3));
             if (j > 250) j = 250;
-            x = x + rng_below(&s->rng, (uint8_t)(j + 1)) - (j >> 1);
+            x = (uint16_t)(x + rng_below(&s->rng, (uint8_t)(j + 1)) - (j >> 1));
         }
     }
     if (x < 1) x = 1;
@@ -696,12 +699,15 @@ void agents_second(void) BANKED
 
 void agents_tick(void) BANKED
 {
-    uint8_t i;
+    /* hot path (every frame): pointer iteration, no index multiplications */
+    uint8_t i, bit = 1;
     uint8_t clocked = proj.glob[GP_TMODE] == TM_CLOCKED;
-    for (i = 0; i < NUM_AGENTS; i++) {
-        AgentState *s = &eng.ag[i];
+    uint8_t mask = eng.form.ending ? 0 : eng.form.live.s[SC_MASK];
+    AgentState *s = eng.ag;
+    const uint8_t *c = proj.agent[0].a;
+    for (i = 0; i < NUM_AGENTS; i++, s++, c += AP_COUNT, bit <<= 1) {
         if (s->fired) s->fired--;
-        if (!CFG(i)[AP_EN] || !in_scene(i) || eng.form.ending) continue;
+        if (!c[AP_EN] || !(mask & bit)) continue;
         if (s->hold) { s->hold--; continue; }
         if (clocked && !eng.step) continue;
         if (s->timer > 1) { s->timer--; continue; }

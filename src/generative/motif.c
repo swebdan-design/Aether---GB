@@ -19,7 +19,7 @@ static uint8_t gather(Motif *m, uint8_t agent_filter, uint8_t count)
     if (count > MOTIF_MAX) count = MOTIF_MAX;
     if (count < 2) count = 2;
     for (k = 0; k < eng.hcount && got < count; k++) {
-        uint8_t h = hist_recent(k);
+        uint8_t h = HIST_IDX(k);
         if (agent_filter == 0xFF || eng.hist[h].agent == agent_filter) idx[got++] = h;
     }
     if (got < 2) return 0;

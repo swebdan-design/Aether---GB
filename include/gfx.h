@@ -40,6 +40,7 @@
 extern uint8_t joy_held;
 extern uint8_t joy_accel;          /* number of auto-repeats so far */
 uint8_t joy_poll(void) NONBANKED;  /* edge + auto-repeat events     */
+void    input_isr(void) NONBANKED; /* VBlank: latch joypad presses  */
 
 /* -------------------------------------------------------------- text */
 extern char lb[24];                /* scratch line buffer           */

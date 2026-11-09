@@ -8,6 +8,7 @@
 #include <string.h>
 #include "gfx.h"
 #include "engine.h"
+#include "ui.h"
 
 BANKREF_EXTERN(gfx_data)
 extern const uint8_t font_1bpp[];
@@ -167,12 +168,29 @@ void put_hbar(uint8_t x, uint8_t y, uint8_t w, uint8_t v, uint8_t max) NONBANKED
     set_bkg_tiles(x, y, w, 1, tb);
 }
 
-/* --------------------------------------------------------------- input */
-uint8_t joy_poll(void) NONBANKED
+/* --------------------------------------------------------------- input
+ * The VBlank interrupt samples the joypad every frame and latches new
+ * presses, so a press is never lost while the main loop is busy (e.g.
+ * verifying SRAM).  Auto-repeat for the D-pad is derived in the UI loop. */
+static volatile uint8_t joy_pending, joy_isr_prev, joy_isr_now;
+
+void input_isr(void) NONBANKED
 {
     uint8_t j = joypad();
-    uint8_t ev = (uint8_t)(j & ~joy_prev);
-    uint8_t dir = j & 0x0F;
+    joy_pending |= (uint8_t)(j & ~joy_isr_prev);
+    joy_isr_prev = j;
+    joy_isr_now = j;
+}
+
+uint8_t joy_poll(void) NONBANKED
+{
+    uint8_t j, ev, dir;
+    __critical {
+        ev = joy_pending;
+        joy_pending = 0;
+        j = joy_isr_now;
+    }
+    dir = j & 0x0F;
     if (dir && dir == (joy_prev & 0x0F)) {
         if (rep_cnt < 255) rep_cnt++;
         if (rep_cnt >= 16 && ((rep_cnt - 16) % 3) == 0) {
@@ -400,4 +418,29 @@ uint8_t text_edit(char *buf, uint8_t len, uint8_t x, uint8_t y, uint8_t keys, ui
     lb[0] = buf[*pos] == ' ' ? '_' : buf[*pos]; lb[1] = 0;
     put_inv((uint8_t)(x + *pos), y, lb, 1);
     return 1;
+}
+
+/* -------------------------------------------------------------- header
+ * Lives in bank 0 so that every banked page can pass its own string. */
+extern uint8_t ui_page;
+
+static const char * const page_names[6] = {
+    "LIVE", "SYNTH", "AGENTS", "HARMONY", "FORM", "PROJECT"
+};
+
+void ui_header(const char *sub) NONBANKED
+{
+    uint8_t i;
+    char t[12];
+    memset(t, ' ', 11);
+    t[11] = 0;
+    for (i = 0; i < 10 && page_names[ui_page][i]; i++) t[1 + i] = page_names[ui_page][i];
+    put_inv(0, 0, t, 11);
+    if (sub) put_strn(11, 0, sub, 8);
+    else {
+        put_tile(11, 0, 0);
+        for (i = 0; i < 6; i++) put_tile((uint8_t)(12 + i), 0, i == ui_page ? T_PAGE_ON : T_PAGE_OFF);
+        put_tile(18, 0, 0);
+    }
+    put_tile(19, 0, eng.playing ? T_PLAY : T_STOP);
 }

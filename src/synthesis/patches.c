@@ -124,6 +124,17 @@ void wave_transform(uint8_t slot, uint8_t op, Rng *r) BANKED
     live_wave_ver++;
 }
 
+/* morph between two live waves (amt 0..8), rendered for the driver */
+void wave_blend(uint8_t a, uint8_t b, uint8_t amt, uint8_t *out) BANKED
+{
+    uint8_t i;
+    const uint8_t *wa = live_wave[a & 3], *wb = live_wave[b & 3];
+    for (i = 0; i < 32; i++) {
+        int8_t x = (int8_t)raw_get(wa, i), y = (int8_t)raw_get(wb, i);
+        raw_set(out, i, (uint8_t)(x + (int8_t)(((y - x) * (int8_t)amt) / 8)));
+    }
+}
+
 /* runtime evolution: bounded random walk of the live copy around the
  * stored wave, so long performances transform the timbre slowly but
  * can never drift into an unrelated sound. */
@@ -160,7 +171,7 @@ static const PatchDef factory[NUM_FACTORY_PATCHES] = {
     {"ARPEG ", { 0,  1, 10,  0,  2,  8,  0,  0,  0,  6,  3, 12,  0,  0,  0,  0,  1,  0,  2,  0,  0,  0, 0x00 }},
     {"MOTE  ", { 0,  0,  7,  0,  1,  4,  0,  0,  0,  0,  4, 12,  0,  0,  0,  0,  1,  4,  2,  0,  0,  0, 0x00 }},
     {"REED  ", { 0,  2,  8,  0,  5,  9,  2,  4,  5,  0,  4, 11, 10,  0,  0,  0,  1,  1,  2,  6,  0,  0, 0x00 }},
-    {"DRONE ", { 1,  0,  3,  0,  0, 15,  1,  1,  8,  0,  4, 12,  0,  1,  0,  2,  1,  0,  2,  3,  0,  0, 0x00 }},
+    {"DRONE ", { 1,  0,  2,  0,  0, 15,  1,  1,  8,  0,  4, 12,  0,  1,  0,  2,  1,  0,  2,  3,  0,  0, 0x00 }},
     {"WARM  ", { 1,  1,  2,  0,  6, 10,  2,  3,  6,  0,  4, 12,  0,  1,  0,  0,  1,  1,  2,  2,  0,  0, 0x00 }},
     {"SUB   ", { 1,  0,  3,  0,  0, 12,  0,  0,  0,  0,  4, 12,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0, 0x00 }},
     {"CRYSTL", { 1,  2,  2,  0,  3,  8,  1,  7,  2,  0,  4, 12,  0,  3,  0,  4,  1,  0,  2,  6,  0,  0, 0x00 }},

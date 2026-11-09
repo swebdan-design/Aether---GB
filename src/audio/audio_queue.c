@@ -12,6 +12,7 @@ volatile uint8_t aq_head;
 volatile uint8_t aq_tail;
 uint8_t live_wave[NUM_WAVES][16];
 volatile uint8_t live_wave_ver;
+uint8_t wave_stage[2][16];
 
 uint8_t aq_space(void) NONBANKED
 {

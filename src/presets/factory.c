@@ -266,7 +266,7 @@ static void p_empty(void)
     proj.glob[GP_TEXINST] = 6; proj.glob[GP_SPREAD] = 12;
     macros(4, 4, 4, 3, 3, 12);
     mod(0, MS_RWALK, MD_PAN, 12, 4);
-    scene(0, "HALLWAY", 0xA6, 3, 4, 4, 3, 2, 14, 2, 4, 9, 7, 12, NX_NEXT);
+    scene(0, "HALLWAY", 0xA6, 5, 4, 4, 3, 2, 12, 3, 4, 9, 7, 12, NX_NEXT);
     scene(1, "WINDOW", 0xAF, 4, 5, 5, 4, 3, 13, 4, 5, 8, 9, 12, NX_NEXT);
     scene(2, "VACANT", 0x26, 2, 4, 3, 2, 2, 15, 1, 3, 10, 11, 10, 0);
     clear_scenes_from(3);

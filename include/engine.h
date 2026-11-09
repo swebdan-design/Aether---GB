@@ -100,6 +100,9 @@ typedef struct {
     uint8_t  centres[4];
     uint8_t  bars;
     uint8_t  simplify;    /* 0-3 erosion driven simplification      */
+    uint8_t  croot;       /* pitch class of the current chord root  */
+    uint8_t  pc_ok[12];   /* cached: pitch class in the active set  */
+    uint8_t  pc_cons[12]; /* cached: consonance 0-15 vs the chord   */
     uint8_t  changes;     /* number of harmonic changes (stats)     */
 } HarmonyState;
 
@@ -160,6 +163,7 @@ typedef struct {
     VizEv     viz[VIZ_N];
     uint8_t   viz_w, viz_r;
     uint8_t   ch_agent[NUM_CH];
+    uint8_t   stage_k;            /* next wave staging buffer */
     /* statistics */
     uint16_t  st_events, st_dropped, st_stolen, st_eroded, st_qfull;
     uint8_t   st_maxbehind;
@@ -168,6 +172,10 @@ typedef struct {
 } Engine;
 
 extern Engine eng;
+
+/* x * f / 128 for f <= 255 using only 16-bit arithmetic (x <= 4095);
+ * SDCC's 32-bit multiply is far too slow for the per-decision paths */
+uint16_t scale128(uint16_t x, uint8_t f) NONBANKED;
 
 /* duration / interval tables (frames) live in engine.c */
 uint16_t dur_frames(uint8_t idx) BANKED;
@@ -194,6 +202,7 @@ void    phrase_start(const MotifNote *n, uint8_t len, uint8_t base, uint8_t agen
                      uint8_t inst, uint8_t vol, uint8_t tscale, uint16_t delay,
                      uint8_t fragment) BANKED;
 uint8_t hist_recent(uint8_t back) BANKED;   /* index into eng.hist, 0 = newest */
+#define HIST_IDX(back) ((uint8_t)((eng.hpos + HIST_N - 1 - (back)) & (HIST_N - 1)))
 
 /* -------------------------------------------------------------- agents */
 void    agents_reset(void) BANKED;
@@ -221,6 +230,9 @@ void    eco_reset(void) BANKED;
 void    eco_update(void) BANKED;
 uint8_t eco_get(uint8_t v) BANKED;                       /* 0-255           */
 int8_t  eco_infl(uint8_t v, uint8_t sens) BANKED;        /* -64..+64 signed influence */
+/* inline form for hot paths (same arithmetic as eco_infl) */
+#define ECO_INFL(x, sens) ((int8_t)((((int16_t)(eng.eco.v[(x)] >> 8) - 128) * \
+                           (int16_t)(uint8_t)(proj.eco[EP_INF_E + (x)] * (sens))) >> 9))
 #define ECO_IMPULSE(x, amt) (eng.eco.acc[(x)] += (amt))
 #define ECO8(x) ((uint8_t)(eng.eco.v[(x)] >> 8))
 
@@ -258,6 +270,7 @@ void    wave_sync_live(void) BANKED;
 uint8_t wave_get(uint8_t slot, uint8_t i) BANKED;
 void    wave_set(uint8_t slot, uint8_t i, uint8_t v) BANKED;
 void    wave_evolve(uint8_t slot, uint8_t amount, Rng *r) BANKED;
+void    wave_blend(uint8_t a, uint8_t b, uint8_t amt, uint8_t *out) BANKED;
 #define NUM_FACTORY_PATCHES 18
 void    patch_factory(uint8_t slot, uint8_t idx) BANKED;
 void    patch_factory_name(uint8_t idx, char *out) BANKED;

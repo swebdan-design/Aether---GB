@@ -50,28 +50,30 @@ int8_t eco_infl(uint8_t v, uint8_t sens) BANKED
     return (int8_t)((d * (int16_t)k) >> 9);
 }
 
+/* impulse d (clamped to +-250) scaled by the remaining headroom, so the
+ * variables approach their limits asymptotically.  16-bit arithmetic only. */
 static uint16_t add_soft(uint16_t v, int16_t d)
 {
-    /* impulse scaled by remaining headroom -> asymptotic approach to limits */
-    int32_t x;
+    uint16_t delta;
     if (d > 0) {
-        uint16_t head = (uint16_t)(65535u - v);
-        x = (int32_t)v + (((int32_t)d * (int32_t)(head >> 8)) >> 2);
-    } else {
-        x = (int32_t)v + (((int32_t)d * (int32_t)(v >> 8)) >> 2);
+        delta = (uint16_t)((d * (int16_t)((uint16_t)(65535u - v) >> 9)) >> 1);
+        return (uint16_t)(65535u - v < delta ? 65535u : v + delta);
     }
-    if (x < 0) x = 0;
-    if (x > 65535) x = 65535;
-    return (uint16_t)x;
+    delta = (uint16_t)(((-d) * (int16_t)(v >> 9)) >> 1);
+    return (uint16_t)(v < delta ? 0 : v - delta);
 }
 
+/* pull toward the baseline by 1/2^shift of the distance (shift >= 2) */
 static uint16_t relax(uint16_t v, uint8_t target, uint8_t shift)
 {
-    int16_t d = (int16_t)target - (int16_t)(v >> 8);  /* in units */
-    int32_t x = (int32_t)v + (((int32_t)d << 8) >> shift);
-    if (x < 0) x = 0;
-    if (x > 65535) x = 65535;
-    return (uint16_t)x;
+    int16_t d = (int16_t)target - (int16_t)(v >> 8);   /* -255..255 units */
+    uint16_t m;
+    if (d > 0) {
+        m = (uint16_t)((uint16_t)d << (8 - shift));
+        return (uint16_t)(65535u - v < m ? 65535u : v + m);
+    }
+    m = (uint16_t)((uint16_t)(-d) << (8 - shift));
+    return (uint16_t)(v < m ? 0 : v - m);
 }
 
 void eco_update(void) BANKED
@@ -120,8 +122,8 @@ void eco_update(void) BANKED
 
     for (i = 0; i < 4; i++) {
         c = eng.eco.acc[i];
-        if (c > 400) c = 400;
-        if (c < -400) c = -400;
+        if (c > 250) c = 250;
+        if (c < -250) c = -250;
         eng.eco.v[i] = add_soft(eng.eco.v[i], c);
         eng.eco.v[i] = relax(eng.eco.v[i], eng.eco.target[i], shift);
         eng.eco.acc[i] = 0;
