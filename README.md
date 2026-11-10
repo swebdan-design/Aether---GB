@@ -18,7 +18,7 @@ It is not a game and not a tracker. Press START, put the Game Boy down, and list
 * **Harmonic engine:** 9 scales + user pitch sets, chord movement, weighted context-sensitive pitch choice, interval weighting, harmonic memory (REINFORCE / EXPLORE / DRIFT).
 * **Time architecture:** CLOCKED and beatless FREE timing, micro/meso/macro time levels, 8 scenes with TIME/CHANCE/ECOLOGY transitions and glides, **FOREVER** mode.
 * **IMPRINT:** capture a phrase while it plays, mutate, transpose, re-time it, feed it to agents, or enter motifs by hand.
-* **LIVE page** with six macros (DENSITY, EVOLUTION, HARMONY, MOTION, TEXTURE, SPACE), a sweeping pitch trace, agent activity, channel meters and the ecology.
+* **Pick up and play:** a mood pad on the D-pad (sparse↔dense, calm↔tense) drives six macro controls at once; A keeps a phrase, B moves the piece on; a plain-language menu and a song browser; every control explained on screen.
 * **Projects:** 8 battery-SRAM slots, versioned, checksummed, stored twice; reproducible **seeds**.
 * **Nine compositions:** FIRST LIGHT (default) and PALE TRANSMISSION, STATIC MEMORY, DISSOLVING LIGHT, EMPTY ROOMS, GLASS ORBIT, NIGHT CURRENT, SOFT MACHINES, AFTERIMAGE.
 
@@ -37,7 +37,8 @@ It is not a game and not a tracker. Press START, put the Game Boy down, and list
 
 1. Load `AETHER_by_Synth_Centric.gb` in a Game Boy emulator with battery-save support, or on an MBC5 flash cartridge with 32 KB SRAM.
 2. On the title screen press **START**: FIRST LIGHT begins.
-3. Use UP/DOWN and LEFT/RIGHT on the LIVE page to shape the six macros. **A** captures an IMPRINT. **SELECT** moves between pages; **START** plays/stops.
+3. Move the **D-pad**: the dot on the mood pad moves and the music follows (right denser, up tenser). **A** keeps the phrase you just heard, **B** moves to the next part.
+4. **SELECT** opens the menu: *songs* to pick another piece, or *sounds / players / key / sections / fine tune / save-load* to go deeper. The bottom two lines always say what the buttons do.
 
 ## Build
 

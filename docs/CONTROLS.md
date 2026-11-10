@@ -4,28 +4,25 @@
 
 ## Buttons
 
-| Button | Everywhere | Notes |
+| Button | On the mood pad (home) | In the menu and editors |
 |---|---|---|
-| **D-pad UP / DOWN** | move through a list | auto-repeat when held |
-| **D-pad LEFT / RIGHT** | change the selected value | auto-repeat after ~¼ s; large ranges (notes, seed, tempo, pattern) accelerate while held |
-| **A** | enter / confirm / perform the row's action | in editors: plays the instrument (audition) |
-| **B** | back / cancel / finish editing | on the top level of a page: go home to LIVE |
-| **SELECT** | next page: LIVE → SYNTH → AGENTS → HARMONY → FORM → PROJECT → LIVE | always returns to the top of the next page |
-| **START** | play / stop the composition | works on every page and screen |
+| **D-pad** | shape the mood: right denser, left sparser, up tenser, down calmer | UP/DOWN move through a list, LEFT/RIGHT change a value (auto-repeat, accelerates on large ranges) |
+| **A** | keep (IMPRINT) the last phrase | open / confirm / perform the row's action; in sound editors: listen |
+| **B** | next part of the piece | back one level (editor top level → menu, menu → mood pad) |
+| **SELECT** | open the menu | back to the mood pad |
+| **START** | play / stop | play / stop |
 
-No button combinations are used. All parameters can be edited while the composition plays. Presses are latched by the VBlank interrupt, so input is not lost while the instrument is busy (for example while verifying a save).
+No button combinations are used. Everything can be edited while the music plays. Presses are latched by the VBlank interrupt, so input is never lost.
 
 ## Title screen
-* **START** — enter the instrument and start playing immediately (the default composition FIRST LIGHT is ready).
-* **A** — enter the instrument without playing.
+* **START** — begin playing immediately (FIRST LIGHT).
+* **A** — enter without playing.
 
-## LIVE page
-| Control | Action |
-|---|---|
-| LEFT / RIGHT | choose a fader (DENSITY, EVOLUTION, HARMONY, MOTION, TEXTURE, SPACE) or the scene slot |
-| UP / DOWN | move the selected fader (0–15) / choose a scene on the scene slot |
-| **A on a fader** | **CAPTURE IMPRINT** — store the last 6 notes as the next imprint (M1→M4, cycling); the help line confirms "imprint n captured k" |
-| A on the scene slot | go to the chosen scene (with its glide) |
+## Menu
+songs · sounds · players · key · sections · fine tune · save / load. The help lines describe each entry as you move to it; A opens it.
+
+## Songs
+UP/DOWN choose (the help lines describe the song), A loads it and starts playing on the mood pad. ♪ marks the song currently loaded.
 
 ## Lists and editors
 * The selected row has a ► cursor; ◂ value ▸ means LEFT/RIGHT change it. ▴ / ▾ in the left margin mean more rows above / below.
@@ -37,7 +34,8 @@ No button combinations are used. All parameters can be edited while the composit
 
 ## Page map
 ```
-LIVE      macros · scene · IMPRINT · system view
+PLAY      mood pad · keep phrase · next part (home)
+MENU      songs · sounds · players · key · sections · fine tune · save/load
 SYNTH     instruments 1-8 (PULSE LAB / WAVE / NOISE LAB) · WAVE LAB · MODULATION · OUTPUT
 AGENTS    8 agents (L/R on/off, A edit) · ECOLOGY
 HARMONY   key, scale, behaviour · INTERVALS · USER SET · memory view

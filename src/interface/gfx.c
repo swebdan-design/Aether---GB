@@ -510,8 +510,8 @@ uint8_t text_edit(char *buf, uint8_t len, uint8_t x, uint8_t y, uint8_t keys, ui
  * Lives in bank 0 so that every banked page can pass its own string. */
 extern uint8_t ui_page;
 
-static const char * const page_names[6] = {
-    "live", "synth", "agents", "harmony", "form", "project"
+static const char * const page_names[9] = {
+    "aether", "sounds", "players", "key", "sections", "save/load", "menu", "songs", "fine tune"
 };
 
 /* header: orbit mark, page name and an optional sub-title in lowercase,
@@ -523,7 +523,7 @@ void ui_header(const char *sub) NONBANKED
     put_strn(0, 0, "", 20);
     put_tile(0, 0, T_ORB);
     x = 2;
-    put_low(x, 0, page_names[ui_page], 7);
+    put_low(x, 0, page_names[ui_page], 9);
     for (i = 0; page_names[ui_page][i]; i++) x++;
     if (sub) {
         put_strn((uint8_t)(x + 1), 0, ">", 1);
@@ -531,7 +531,5 @@ void ui_header(const char *sub) NONBANKED
     }
     put_tile(19, 0, eng.playing ? T_PLAY : T_STOP);
     put_rule(1);
-    for (i = 0; i < 6; i++) put_tile((uint8_t)(13 + i), 1, i == ui_page ? T_PAGE_ON : T_PAGE_OFF);
-    put_tile(19, 1, 0);
     put_rule(15);
 }

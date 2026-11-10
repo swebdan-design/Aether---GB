@@ -3,14 +3,14 @@
 # KEY|line 1|line 2   (each line at most 20 characters)
 # Keys are the parameter labels (a leading "1 ".."4 " is ignored), or @NAME
 # for page / screen help.
-@PAGE_LIVE|up/down: macro value|l/r: next control
+@PAGE_LIVE|d-pad shapes mood|a keep  b next part
 @LIVE_SCENE|up/down: pick scene|a: go to it now
 @LIVE_FADER|a: capture (imprint)|the last phrase
-@PAGE_SYNTH|a: edit  l/r: listen|b: home  sel: pages
-@PAGE_AGENTS|l/r: agent on/off|a: edit   b: home
-@PAGE_HARMONY|keys, scales, chords|a: open   b: home
-@PAGE_FORM|scenes, time, motifs|a: open   b: home
-@PAGE_PROJECT|save, load, seeds|a: select b: home
+@PAGE_SYNTH|a: edit  l/r: listen|b: back to menu
+@PAGE_AGENTS|l/r: player on/off|a: edit   b: menu
+@PAGE_HARMONY|keys, scales, chords|a: open   b: menu
+@PAGE_FORM|parts, time, phrases|a: open   b: menu
+@PAGE_PROJECT|save, load, seeds|a: select b: menu
 @WAVE_DRAW|l/r: sample u/d: lvl|a: listen b: done
 @WAVE_MENU|a: select  b: back|
 @NOTES|a: next column|l/r: change b: back

@@ -27,7 +27,7 @@ AETHER is meant to behave like a self-evolving sound installation rather than a 
 * **Evolution over repetition.** Motifs grow, contract and return; figures mutate slowly; tides of activity rise and fall over minutes; scenes change the rules.
 * **Silence as material.** Density, space, erosion and silence probabilities are first-class controls.
 * **Hardware authenticity.** Pulse, wave and noise channels are used for what they are; there are no samples.
-* **Agency.** Six macro controls on the LIVE page reshape the music instantly; everything else remains editable while it plays.
+* **Agency.** The mood pad on the D-pad reshapes the music instantly; everything else remains editable while it plays.
 
 ## 3. Hardware compatibility
 
@@ -50,47 +50,63 @@ A brand-new cartridge contains random data in its save memory. AETHER detects th
 
 ## 5. Controls
 
-| Button | Function |
-|---|---|
-| D-pad UP/DOWN | move through lists · on LIVE: move the selected fader |
-| D-pad LEFT/RIGHT | change values (hold to repeat; large ranges accelerate) · on LIVE: choose a fader |
-| A | enter, confirm, perform an action; in editors: hear the instrument · on LIVE: IMPRINT |
-| B | back one level; on the top level of a page: **home** (LIVE) |
-| SELECT | next page (live → synth → agents → harmony → form → project) |
-| START | play / stop, from anywhere |
+### Thirty-second start
 
-**Reading the screen.** Every page has the same frame: the top line shows the orbit mark, the page name and where you are (`synth > 1 glass`), with ▶/■ for play state at the right. A dotted rule below carries six page dots (the filled one is the current page). The selected row has a ► cursor, and its value is framed by ◂ ▸ when LEFT/RIGHT can change it. ▴/▾ in the left margin mean the list continues above/below. Under the lower rule, a **two-line help panel** always explains the selected control; short confirmations appear on its second line, marked with a dot.
+1. Press **START** on the title screen. Music begins.
+2. Move the **D-pad**. The dot on the *mood pad* moves and the music follows: **right** = denser, **left** = sparser, **up** = more tension and movement, **down** = calmer.
+3. Heard a phrase you love? Press **A** — it is *kept* and will come back later in new forms.
+4. Press **B** to move the piece on to its **next part**.
+5. Press **SELECT** for the **menu**: choose another song, or open the deeper editors.
 
-Destructive actions (SAVE, LOAD, ERASE, FACTORY, STORE TO) ask you to press **A again**. Full details: `CONTROLS.md`.
+The two bottom lines of the screen always tell you what the buttons do right now.
 
-## 6. LIVE screen
+| Button | On the mood pad | In the menu and editors |
+|---|---|---|
+| D-pad | shape the mood | move through lists (UP/DOWN), change values (LEFT/RIGHT) |
+| A | keep the phrase you just heard | open / confirm; in sound editors: listen |
+| B | next part of the piece | back one level |
+| SELECT | open the menu | back to the mood pad |
+| START | play / stop | play / stop |
 
-The LIVE page is the instrument's face.
+**The menu** has seven entries, each explained on the help lines as you move to it:
+
+| Menu | What it is | Chapter |
+|---|---|---|
+| songs | the nine compositions: pick one, read its description, press A to hear it | §15 |
+| sounds | the eight instruments and the wavetable drawing board | §7 |
+| players | the eight agents that write the notes | §8 |
+| key | key, scale, consonance, harmonic memory | §9 |
+| sections | the parts (scenes) of the piece, timing, kept phrases | §11, §12 |
+| fine tune | the six mood controls individually, steady/free pulse, tempo, volume | §6 |
+| save / load | 8 memory slots, seeds, credits | §13 |
+
+**Reading an editor.** The top line names where you are (`sounds > 1 glass`). The selected row has a ► cursor; ◂ value ▸ means LEFT/RIGHT change it; ▴/▾ in the margin mean the list continues. The two help lines at the bottom always explain the selected control; confirmations appear there too. Actions that replace or erase something (save, load, erase, factory, store) ask you to press **A again**.
+
+## 6. Playing: the mood pad
 
 ```
- o live > first light   ▶     page, project, play state
- ............... ●○○○○○       page dots
- D  major            free     key, scale · FREE or BPM
- s1 arrival         02:15     running scene · elapsed time
- ♪  ·   ·  :   ·  ·           trace: the last ~13 s of notes
- •orb  blm  drf •sct          the eight agents (big dot = playing now,
- •tid  ech  ero  mem           small dot = taking part in the scene)
- energy▬▬  tension▬▬          the ecology
- stable▬▬  memory ▬▬
- ...................
-  ▮▮ ▮▮ ▮▮ ▮▮ ▮▮ ▮▮  s        six macro faders · scene slot
-  ▮▮ ▮▮ ▮▮ ▮▮ ▮▮ ▮▮  2
-  ▲▲ ·· ·· ·· ·· ··           selection marker
- ...................
-  density        ▾ 8▴         readout of the selected control
- u/d value  a imprint         help / messages
+ o aether                ▶     play state
+ ..........................
+  first light                  the song
+  part arrival        02:15    the part playing now, elapsed time
+ ♪  ·   ·  :   ·  ·            the notes of the last ~13 s
+ ▴tense
+   · · · · · · · · · · ·
+   · · · · ● · · · · · ·       the mood pad
+   · · · · · · · · · · ·
+ ▾calm   ◂sparse   dense▸
+ ..........................
+ a keep   b next part
+ sel menu  start stop
 ```
 
-**Playing LIVE:** LEFT/RIGHT choose one of the six faders or the scene slot at the far right. UP/DOWN move the selected fader (0–15) — or, on the scene slot, choose a scene; A then goes to it. On any fader, **A captures an IMPRINT**.
+The pad is one gesture for six musical controls. Horizontal: **density** (more notes), **motion** (quicker decisions) and less **space** (fewer silences and echoes). Vertical: **harmony** (more dissonance and harmonic wandering), **evolution** (faster change) and **texture** (more noise and timbral movement). When a part changes, its own settings glide in — you will see the dot drift. Your gesture always wins until the next part.
 
-### Macro controls
+For individual control of the six, use *menu ▸ fine tune*.
 
-Each macro (0–15) is mapped to real engine parameters:
+### The six mood controls (fine tune)
+
+Each (0–15) is mapped to real engine parameters:
 
 | Macro | What it does |
 |---|---|
@@ -103,13 +119,13 @@ Each macro (0–15) is mapped to real engine parameters:
 
 Scenes can glide the faders to new values (you will see them move); your adjustments always win until the next scene change.
 
-### IMPRINT capture
-Press **A** while a fader is selected to capture the last six notes as an IMPRINT (FORM ▸ MOTIFS M1…M4, cycling). See §12.
+### Keeping phrases
+Press **A** on the pad to keep the last six notes (*sections ▸ phrases*, slots M1…M4 in turn). See §12.
 
-### Scene slot
-Select the slot at the right (LEFT/RIGHT), pick a scene with UP/DOWN and press **A** to go there (the scene's glide applies).
+### Moving through the piece
+**B** jumps to the next part with its glide. To choose any part, use *menu ▸ sections ▸ go to*.
 
-## 7. SYNTH editor
+## 7. Sounds (SYNTH editor)
 
 The SYNTH page lists the eight instrument slots (name, type, and TEX for the noise texture instrument). LEFT/RIGHT on a slot plays it; A opens its editor. Below are WAVE LAB, MODULATION and OUTPUT.
 
@@ -124,7 +140,7 @@ The SYNTH page lists the eight instrument slots (name, type, and TEX for the noi
 
 Every parameter is described in `SYNTHESIS.md`.
 
-## 8. AGENTS editor
+## 8. Players (AGENTS editor)
 
 The AGENTS page shows the eight agents with their on/off box (LEFT/RIGHT toggles), activity dot and instrument. A opens an agent; the last row opens ECOLOGY.
 
@@ -171,7 +187,7 @@ How each agent thinks is explained in `GENERATIVE_ENGINE.md` §2. In short:
 * **ERODE** dissolves: deletes notes, opens silences, cuts holes in motifs, simplifies harmony, then lets things grow back.
 * **MEMORY** learns the intervals everyone plays and recalls remembered phrases, including your IMPRINTs.
 
-## 9. HARMONY editor
+## 9. Key (HARMONY editor)
 
 | Parameter | Meaning |
 |---|---|
@@ -196,7 +212,7 @@ Four variables describe the state of the music: **ENERGY**, **TENSION**, **STABI
 
 AGENTS ▸ ECOLOGY shows the four variables live and lets you set their influence, bias, damping, coupling and freeze them. Full rules: `MUSICAL_ECOLOGY.md`.
 
-## 11. FORM and Scenes
+## 11. Sections (FORM and scenes)
 
 **FORM page:**
 
@@ -232,13 +248,13 @@ Transitions are controlled: macros and tempo **glide** over GLIDE × 4 seconds, 
 
 IMPRINT preserves material you like while the music plays — without stopping anything.
 
-* **Capture:** on LIVE press **A** (last 6 notes of any agent), or in FORM ▸ MOTIFS ▸ M*n* choose FROM (an agent or ANY) and CAPTURE. Relative pitches, onsets and durations are stored with the playing instrument.
+* **Capture:** on the mood pad press **A** (last 6 notes of any agent), or in FORM ▸ MOTIFS ▸ M*n* choose FROM (an agent or ANY) and CAPTURE. Relative pitches, onsets and durations are stored with the playing instrument.
 * **Motif editor** (FORM ▸ MOTIFS ▸ M1–M4): PLAY, MUTATE, BASE NOTE (transpose), TIME (×0.5/×1/×1.5/×2), THIN (remove a note), FILL (insert a passing note), INSTR, RECUR (how likely MEMORY recalls it), SOURCE OF (make it the material of ORBIT or BLOOM, or MEMORY's favourite), CLEAR.
 * **NOTES:** manual entry — set LEN (1–8), then per note the relative pitch (REL, ±24), the WAIT before it and its LEN (both in 4-frame units ≈ 1/15 s). A moves between columns; changing a pitch plays it.
 
 Manually entered motifs behave exactly like captured ones. Imprints are saved with the project.
 
-## 13. PROJECT storage
+## 13. Save / load (PROJECT storage)
 
 | Row | Function |
 |---|---|
@@ -277,13 +293,12 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 
 ## 16. Creating your first composition
 
-1. PROJECT ▸ FACTORY: choose FIRST LIGHT, press A twice. Rename it (NAME).
-2. Press START. Listen for a minute.
-3. LIVE: select the DENSITY fader and lower it to 4 (DOWN), then raise SPACE to 12 — the music opens up. Raise MOTION — it quickens.
-4. AGENTS: disable SCATTER (LEFT on its row). Open ORBIT, set INTERVALS to TRIAD and RADIUS to 7.
-5. HARMONY: change SCALE to DORIAN.
-6. FORM ▸ STORE TO S1, press A twice: your current sound is now scene 1.
-7. PROJECT ▸ SAVE (A, A). Done.
+1. *menu ▸ songs*: choose FIRST LIGHT, press A. It plays.
+2. On the pad, move left and down: sparse and calm. Then right: it fills in.
+3. *menu ▸ players*: switch SCATTER off (LEFT on its row). Open ORBIT, set INTERVALS to TRIAD and RADIUS to 7.
+4. *menu ▸ key*: change SCALE to DORIAN.
+5. *menu ▸ sections ▸ store to* S1, press A twice: your current sound is now part 1.
+6. *menu ▸ save / load*: NAME it, then SAVE (A, A). Done.
 
 ### Tutorial A — Create a slowly evolving drone
 1. SYNTH ▸ WAVE LAB: SLOT 1, TEMPLATE ORGAN (A). SLOT 2, TEMPLATE HOLLOW (A).
@@ -298,8 +313,8 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 1. AGENTS ▸ BLOOM: ENABLED, INSTR HALO or GLASS, LOW G4 / HIGH D6, MOTIF LEN 3, BRANCHING 6, SILENCE 4, MAX LEN 12, DUR MIN/MAX 0.5–1.6 s, STEREO ALTERN.
 2. AGENTS ▸ ECHO: ENABLED, DELAY 1.6 s, DISPLACE OCT UP, FRAGMENT 6.
 3. HARMONY: SCALE LYDIAN, CONSONANT 12, DISSONANT 1, MEM MODE REINFORCE.
-4. LIVE: DENSITY 6, SPACE 11, EVOLUTION 6.
-5. When a phrase appears that you like, press A on LIVE to IMPRINT it; set its SOURCE OF to BLOOM (FORM ▸ MOTIFS).
+4. *fine tune*: DENSITY 6, SPACE 11, EVOLUTION 6.
+5. When a phrase appears that you like, press A on the mood pad to keep it; set its SOURCE OF to BLOOM (FORM ▸ MOTIFS).
 
 ### Tutorial C — Create a dark, unstable soundscape
 1. HARMONY: ROOT C#, SCALE PHRYGIAN, CONSONANT 5, DISSONANT 8, CENTRE 4, MEM MODE EXPLORE.
@@ -307,18 +322,18 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 3. SYNTH ▸ OUTPUT: TEXTURE = an instrument loaded with STATIC; in NOISE LAB raise DRIFT to 6.
 4. AGENTS: DRIFT with MAX STEP 4, TIMING 12, HARMONY 8; SCATTER with a noise instrument (SPARK), CLUSTER 11; ERODE enabled, STRENGTH 9, SPEED 6.
 5. MODULATION: S&H → DUTY, RND WALK → PITCH (small depth), TENSION → NOISE.
-6. LIVE: HARMONY 10, TEXTURE 11. Watch tension rise, resolve, and rise again.
+6. On the pad, move up toward *tense* (or *fine tune*: HARMONY 10, TEXTURE 11). Watch tension rise, resolve, and rise again.
 
 ### Tutorial D — Build a 60-minute autonomous composition
 1. Prepare five scenes (FORM ▸ SCENES), e.g. ARRIVAL, EMERGENCE, EXPANSION, DISSOLUTION, RETURN. For each, set AGENTS, macros, ecology targets and LENGTH (e.g. 8:00, 12:00, 15:00, 10:00, 15:00 = 60 min).
 2. CHANGE BY TIME for all, NEXT = NEXT; GLIDE 20–40 s.
 3. Make DISSOLUTION include ERODE and give it high SPACE; give RETURN high MEMORY and ECHO/MEMORY agents, so earlier motifs reappear in altered form.
 4. For a finite piece: set the last scene's NEXT to END and FOREVER OFF — after the last scene AETHER fades and stops. For an endless one: FOREVER ON.
-5. Tip: build each scene by playing, adjusting on LIVE, then FORM ▸ STORE TO.
+5. Tip: build each scene by playing, adjusting with the mood pad, then *sections ▸ store to*.
 6. SAVE. Press START and leave the Game Boy running.
 
 ### Tutorial E — Capture and develop a musical motif
-1. While music plays, press A on LIVE when you hear a phrase you like: "imprint 1 captured 6".
+1. While music plays, press A on the mood pad when you hear a phrase you like: "imprint 1 captured 6".
 2. FORM ▸ MOTIFS ▸ M1: PLAY to hear it (while the composition runs).
 3. MUTATE a few times, adjust TIME to ×1.5, THIN once.
 4. RECUR 12: MEMORY will now recall it often. SOURCE OF BLOOM: BLOOM grows phrases from it.
@@ -348,7 +363,7 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 
 | Symptom | Remedy |
 |---|---|
-| No sound | START pressed? Check OUTPUT ▸ MASTER and channel roles (OFF silences a channel). Check that agents are ENABLED *and* part of the current scene (LIVE agent letters). |
+| No sound | START pressed? Check OUTPUT ▸ MASTER and channel roles (OFF silences a channel). Check that agents are ENABLED *and* part of the current scene (*players* page: a dot means taking part). |
 | Too sparse / silent stretches | raise DENSITY, lower SPACE; check ERODE; scenes may be designed sparse (EMPTY ROOMS). |
 | Too busy | lower DENSITY or MOTION; raise SPACE; reduce ACTIVITY of SCATTER/ECHO. |
 | A drone is never interrupted | that is protection: long notes and DRONE-role channels are protected. |
@@ -375,7 +390,7 @@ Each composition has its own instruments, agent settings, harmonic behaviour, ec
 | Instruments | 8 per project, 18 factory patches, 4 wavetables, 10 templates, 10 transforms |
 | IMPRINT | 4 saved motifs (8 notes) + 4 automatic, 32-note history |
 | Storage | 8 slots × 2 copies, versioned, Fletcher-16 checksums |
-| CPU (measured, emulator) | driver ≈ 16–20 scan-lines/frame (≈ 12 %), generator ≈ 8–17 lines/frame average, UI ≈ 60 lines/frame on LIVE |
+| CPU (measured, emulator) | driver ≈ 16–20 scan-lines/frame (≈ 12 %), generator ≈ 8–17 lines/frame average, UI ≈ 50 lines/frame on the mood pad |
 | Verified | PyBoy emulator: boot, navigation, editing, playback, IMPRINT, save/power-cycle/load, 60-minute playback |
 | Not verified | physical DMG hardware, other emulators |
 

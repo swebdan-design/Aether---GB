@@ -20,18 +20,6 @@ uint8_t ui_frame_cnt;
 uint8_t imprint_next;
 uint8_t ui_panel_single;            /* LIVE: help panel uses row 17 only */
 
-static const char * const scale_short[NUM_SCALES] = {
-    "major", "minor", "maj pent", "min pent", "dorian", "phrygian", "lydian", "mixolyd", "chromatic", "user set"
-};
-static const char note_names[] = "C C#D D#E F F#G G#A A#B ";
-static const char * const macro_names[NUM_MACROS] = {
-    "density", "evolution", "harmony", "motion", "texture", "space"
-};
-static const char * const roman[7] = { "I", "II", "III", "IV", "V", "VI", "VII" };
-static const char * const agent_short[NUM_AGENTS] = {
-    "orb", "blm", "drf", "sct", "tid", "ech", "ero", "mem"
-};
-
 void ui_toggle_play(void) BANKED
 {
     engine_set_playing((uint8_t)!eng.playing);
@@ -83,6 +71,7 @@ void ui_title(void) BANKED
             ui_page = PG_LIVE;
             ui_redraw();
             if (keys & K_START) ui_toggle_play();
+            ui_msg("D-PAD SHAPES MOOD");
             return;
         }
         if ((f & 31) == 0) put_strn(4, 15, (f & 32) ? "            " : "press  start", 12);
@@ -92,31 +81,34 @@ void ui_title(void) BANKED
     }
 }
 
-/* ================================================================ LIVE
+/* ================================================================ PLAY
  *
- *  r0   (o) live > project name                        play
- *  r1   ............................ page dots
- *  r2   key + scale          free / bpm         elapsed
- *  r3   scene name                              chord
- *  r4-6 trace: the last ~13 s of generated pitches
- *  r7-8 the eight agents: activity dot + name
- *  r9-10 ecology meters
- *  r11  ............................
- *  r12-13 six macro faders + scene slot
- *  r14  selection marker
+ * The home screen, played like an instrument:
+ *
+ *  r0   (o) aether                                   play state
+ *  r1   ............................
+ *  r2   song name
+ *  r3   part (scene) name                            elapsed
+ *  r4-6 trace: the last ~13 s of notes
+ *  r7   tense
+ *  r8-13 the MOOD PAD: d-pad moves the dot.
+ *        left/right = sparse .. dense, down/up = calm .. tense
+ *  r14  calm   <sparse  dense>
  *  r15  ............................
- *  r16  readout of the selected control
- *  r17  help / messages
+ *  r16  a keep phrase  b next part
+ *  r17  sel menu  start play      (or a message)
+ *
+ * The pad drives all six macros at once; scenes that glide the macros
+ * move the dot, so the pad always shows the state of the music.
  */
-#define LIVE_SCENE 6
+#define PAD_X0 2
+#define PAD_Y0 8
+#define PAD_H  6
 #define TRACE_ROWS 3
-static uint8_t live_cur;
-static uint8_t live_scene_sel;
 uint8_t dynbuf[64 * 16];                /* 2bpp shadow of 64 dynamic tiles (trace / waveform) */
 #define trace dynbuf
 static uint8_t trace_x, trace_div;
 static uint8_t dirty[8];                /* 64 dirty bits */
-static uint8_t mac_shown[NUM_MACROS];
 
 static void trace_px(uint8_t x, uint8_t y, uint8_t c)
 {
@@ -200,195 +192,142 @@ static void trace_tick(void)
     trace_upload(2);
 }
 
-/* ---- faders: two tiles wide, two tiles tall, 16 levels */
-static void live_fader(uint8_t k)
+static uint8_t pad_x, pad_y, pad_drawn_x = 0xFF, pad_drawn_y = 0xFF;
+
+static uint8_t clamp15(int16_t v) { return (uint8_t)(v < 0 ? 0 : v > 15 ? 15 : v); }
+
+/* one gesture -> six macros */
+static void pad_apply(void)
 {
-    uint8_t x = (uint8_t)(1 + k * 3);
-    uint8_t h = (uint8_t)(proj.macro[k] + 1);              /* 1..16 px */
-    uint8_t lo = h > 8 ? 8 : h, hi = h > 8 ? (uint8_t)(h - 8) : 0;
-    uint8_t t[2];
-    t[0] = t[1] = (uint8_t)(T_VBAR + hi);
-    put_tiles(x, 12, 2, t);
-    t[0] = t[1] = (uint8_t)(T_VBAR + lo);
-    put_tiles(x, 13, 2, t);
-    mac_shown[k] = proj.macro[k];
+    uint8_t x = pad_x, t = (uint8_t)(pad_y * 3);
+    uint8_t m[NUM_MACROS], k;
+    m[MAC_DENSITY]   = x;
+    m[MAC_MOTION]    = clamp15(2 + ((x * 3) >> 2));
+    m[MAC_SPACE]     = clamp15(13 - ((x * 2) / 3));
+    m[MAC_HARMONY]   = t;
+    m[MAC_EVOLUTION] = clamp15(3 + ((t * 2) / 3));
+    m[MAC_TEXTURE]   = clamp15(3 + (t >> 1));
+    for (k = 0; k < NUM_MACROS; k++) { proj.macro[k] = m[k]; eng.form.mac_tgt[k] = m[k]; }
 }
 
-static void live_markers(void)
+static void pad_read(void)
 {
-    uint8_t t[20], k;
-    memset(t, 0, 20);
-    for (k = 0; k < NUM_MACROS; k++) t[1 + k * 3] = t[2 + k * 3] = T_DOTSM;
-    if (live_cur < NUM_MACROS) { t[1 + live_cur * 3] = T_MARK; t[2 + live_cur * 3] = T_MARK; }
-    else t[19] = T_MARK;
-    put_tiles(0, 14, 20, t);
+    pad_x = proj.macro[MAC_DENSITY] & 15;
+    pad_y = (uint8_t)((proj.macro[MAC_HARMONY] + 1) / 3);
+    if (pad_y > PAD_H - 1) pad_y = PAD_H - 1;
 }
 
-static void live_scene_slot(void)
+static void pad_cell(uint8_t x, uint8_t y, uint8_t on)
 {
-    /* the seventh control: scene number as a two-line glyph */
-    lb[0] = 's'; lb[1] = 0;
-    put_strn(19, 12, lb, 1);
-    lb[0] = (char)('1' + live_scene_sel);
-    put_strn(19, 13, lb, 1);
+    put_tile((uint8_t)(PAD_X0 + x), (uint8_t)(PAD_Y0 + PAD_H - 1 - y), on ? T_DOT_ON : T_DOT_DIM);
 }
 
-static void live_readout(void)
+static void pad_draw_all(void)
 {
-    char s[12];
-    put_strn(0, 16, "", 20);
-    if (live_cur < NUM_MACROS) {
-        put_low(1, 16, macro_names[live_cur], 10);
-        put_tile(15, 16, T_DOWN);
-        put_num(16, 16, proj.macro[live_cur], 2);
-        put_tile(18, 16, T_UP);
-    } else {
-        put_low(1, 16, "scene", 5);
-        put_tile(7, 16, T_DOWN);
-        ui_scene_label(live_scene_sel, s);
-        put_low(8, 16, s, 11);
-        put_tile(19, 16, T_UP);
-        if (live_scene_sel == eng.form.scene) put_tile(0, 16, T_DOTSM);
-    }
+    uint8_t y, t[16];
+    memset(t, T_DOT_DIM, 16);
+    for (y = 0; y < PAD_H; y++) put_tiles(PAD_X0, (uint8_t)(PAD_Y0 + y), 16, t);
+    pad_drawn_x = pad_drawn_y = 0xFF;
 }
 
-static void live_help(void)
+static void pad_show(void)
 {
-    ui_hint(live_cur < NUM_MACROS ? "u/d value  a imprint" : "u/d pick  a go there");
+    if (pad_drawn_x == pad_x && pad_drawn_y == pad_y) return;
+    if (pad_drawn_x != 0xFF) pad_cell(pad_drawn_x, pad_drawn_y, 0);
+    pad_cell(pad_x, pad_y, 1);
+    pad_drawn_x = pad_x; pad_drawn_y = pad_y;
 }
 
-static void live_key_line(void)
+static void play_legend(void)
 {
-    uint8_t r = proj.harm[HP_ROOT] % 12;
-    char s[21];
-    memset(s, ' ', 20);
-    s[20] = 0;
-    s[0] = note_names[r * 2];
-    s[1] = note_names[r * 2 + 1];
-    { uint8_t i; const char *n = scale_short[proj.harm[HP_SCALE] % NUM_SCALES]; for (i = 0; i < 9 && n[i]; i++) s[3 + i] = n[i]; }
-    if (proj.glob[GP_TMODE] == TM_FREE) { s[16] = 'f'; s[17] = 'r'; s[18] = 'e'; s[19] = 'e'; }
-    else { fmt_num(s + 13, proj.glob[GP_TEMPO], 3); s[16] = 'b'; s[17] = 'p'; s[18] = 'm'; }
-    put_strn(0, 2, s, 20);
+    put_low(0, 16, "a keep   b next part", 20);
+    ui_hint(eng.playing ? "sel menu  start stop" : "sel menu  start play");
 }
 
-static void live_scene_line(void)
+static void play_song_line(void)
 {
-    char s[12];
-    ui_scene_label(eng.form.scene, s);
-    put_low(0, 3, s, 12);
+    put_low(1, 2, proj.name, PROJ_NAME_LEN);
+}
+
+static void play_part_line(void)
+{
+    uint8_t i;
+    char s[SCENE_NAME_LEN + 1];
+    for (i = 0; i < SCENE_NAME_LEN; i++) s[i] = proj.scene[eng.form.scene & 7].name[i];
+    s[SCENE_NAME_LEN] = 0;
+    put_low(1, 3, "part", 4);
+    put_low(6, 3, s, SCENE_NAME_LEN);
     fmt_time(lb, eng.form.total_s, eng.form.hours);
     if (eng.form.hours) put_strn(13, 3, lb, 7);
-    else put_strn(15, 3, lb, 5);
+    else { put_strn(14, 3, "", 1); put_strn(15, 3, lb, 5); }
 }
 
-static void live_agents(void)
+static void play_draw(void)
 {
-    uint8_t i, t[20];
-    for (i = 0; i < NUM_AGENTS; i++) {
-        uint8_t on = proj.agent[i].a[AP_EN] && ((eng.form.live.s[SC_MASK] >> i) & 1);
-        uint8_t x = (uint8_t)((i & 3) * 5);
-        const char *n = agent_short[i];
-        t[x] = !on ? 0 : ((eng.ag[i].fired && eng.playing) ? T_DOT_ON : T_DOTSM);
-        t[x + 1] = (uint8_t)(n[0] - 32);
-        t[x + 2] = (uint8_t)(n[1] - 32);
-        t[x + 3] = (uint8_t)(n[2] - 32);
-        t[x + 4] = 0;
-        if ((i & 3) == 3) put_tiles(0, (uint8_t)(7 + (i >> 2)), 20, t);
-    }
-}
-
-static void live_ecology(void)
-{
-    put_low(0, 9, "energy", 6);
-    put_hbar(6, 9, 3, ECO8(ECO_ENERGY), 255);
-    put_low(10, 9, "tension", 7);
-    put_hbar(17, 9, 3, ECO8(ECO_TENSION), 255);
-    put_low(0, 10, "stable", 6);
-    put_hbar(6, 10, 3, ECO8(ECO_STAB), 255);
-    put_low(10, 10, "memory", 7);
-    put_hbar(17, 10, 3, ECO8(ECO_MEMORY), 255);
-}
-
-static void live_draw(void)
-{
-    uint8_t k;
-    char nm[PROJ_NAME_LEN + 1];
-    memcpy(nm, proj.name, PROJ_NAME_LEN);
-    nm[PROJ_NAME_LEN] = 0;
-    for (k = PROJ_NAME_LEN; k > 0 && nm[k - 1] == ' '; k--) nm[k - 1] = 0;
     gfx_cls();
-    ui_header(nm);
-    put_strn(0, 15, "", 20);
-    put_rule(11);
-    put_rule(15);
-    live_key_line();
-    live_scene_line();
+    ui_header(0);
+    play_song_line();
+    play_part_line();
     trace_reset();
-    live_agents();
-    live_ecology();
-    for (k = 0; k < NUM_MACROS; k++) live_fader(k);
-    live_scene_slot();
-    live_markers();
-    live_readout();
-    live_help();
+    put_tile(0, 7, T_UP);
+    put_low(1, 7, "tense", 5);
+    pad_draw_all();
+    put_tile(0, 14, T_DOWN);
+    put_low(1, 14, "calm", 4);
+    put_tile(6, 14, T_LARROW);
+    put_low(7, 14, "sparse", 6);
+    put_low(14, 14, "dense", 5);
+    put_tile(19, 14, T_RARROW);
+    pad_read();
+    pad_show();
+    play_legend();
 }
 
-static void live_select(uint8_t c)
+static uint8_t next_part(void)
 {
-    live_cur = c;
-    live_markers();
-    live_readout();
-    live_help();
+    uint8_t k, s = eng.form.scene;
+    for (k = 1; k <= NUM_SCENES; k++) {
+        uint8_t n = (uint8_t)((s + k) & 7);
+        if (proj.scene[n].s[SC_ON]) return n;
+    }
+    return s;
 }
 
 void pg_live(uint8_t keys, uint8_t mode) BANKED
 {
-    if (mode == M_ENTER) { live_scene_sel = eng.form.scene; ui_panel_single = 1; mode = M_DRAW; }
-    if (mode == M_DRAW) { live_draw(); return; }
+    static uint8_t was_playing;
+    if (mode == M_ENTER) { ui_panel_single = 1; mode = M_DRAW; }
+    if (mode == M_DRAW) { play_draw(); was_playing = eng.playing; return; }
     if (mode == M_TICK) {
-        uint8_t ph = ui_frame_cnt & 7, k;
+        uint8_t ph = ui_frame_cnt & 7;
         trace_tick();
-        if (ph == 1) live_agents();
-        else if (ph == 3) live_ecology();
-        else if (ph == 5) {
-            for (k = 0; k < NUM_MACROS; k++)
-                if (mac_shown[k] != proj.macro[k]) {
-                    live_fader(k);
-                    if (k == live_cur) live_readout();
-                }
-        } else if (ph == 7) {
-            if ((ui_frame_cnt & 63) == 7) live_key_line();
-            else if ((ui_frame_cnt & 31) == 15) live_scene_line();
-        }
+        if (ph == 3) { pad_read(); pad_show(); }          /* scenes move the dot */
+        else if (ph == 5 && (ui_frame_cnt & 31) == 5) play_part_line();
+        if (was_playing != eng.playing) { was_playing = eng.playing; if (!ui_msg_t) play_legend(); }
         return;
     }
-    if ((keys & K_LEFT) && live_cur > 0) live_select((uint8_t)(live_cur - 1));
-    if ((keys & K_RIGHT) && live_cur < LIVE_SCENE) live_select((uint8_t)(live_cur + 1));
-    if (keys & (K_UP | K_DOWN)) {
-        if (live_cur < NUM_MACROS) {
-            uint8_t *m = &proj.macro[live_cur];
-            if ((keys & K_UP) && *m < 15) (*m)++;
-            if ((keys & K_DOWN) && *m > 0) (*m)--;
-            eng.form.mac_tgt[live_cur] = *m;      /* the performer overrides any glide */
-            live_fader(live_cur);
-        } else {
-            uint8_t k, s = live_scene_sel;
-            for (k = 0; k < NUM_SCENES; k++) {
-                s = (uint8_t)((keys & K_UP) ? (s + 1) & 7 : (s + 7) & 7);
-                if (proj.scene[s].s[SC_ON]) break;
-            }
-            live_scene_sel = s;
-            live_scene_slot();
-        }
-        live_readout();
+    if (keys & (K_LEFT | K_RIGHT | K_UP | K_DOWN)) {
+        pad_read();
+        if ((keys & K_LEFT) && pad_x > 0) pad_x--;
+        if ((keys & K_RIGHT) && pad_x < 15) pad_x++;
+        if ((keys & K_DOWN) && pad_y > 0) pad_y--;
+        if ((keys & K_UP) && pad_y < PAD_H - 1) pad_y++;
+        pad_apply();
+        pad_show();
     }
-    if (keys & K_A) {
-        if (live_cur == LIVE_SCENE) {
-            form_goto(live_scene_sel, 0);
-            ui_msg("SCENE CHANGE");
-            live_readout();
-            live_scene_line();
-        } else ui_capture_imprint(0xFF);
+    if (keys & K_A) ui_capture_imprint(0xFF);
+    if (keys & K_B) {
+        uint8_t n = next_part();
+        if (n == eng.form.scene) ui_msg("ONLY ONE PART");
+        else {
+            uint8_t i;
+            form_goto(n, 0);
+            strcpy(lb, "NEXT: ");
+            for (i = 0; i < SCENE_NAME_LEN; i++) lb[6 + i] = proj.scene[n].name[i];
+            lb[6 + SCENE_NAME_LEN] = 0;
+            ui_msg(lb);
+            play_part_line();
+        }
     }
 }
 
@@ -409,7 +348,10 @@ static void page_call(uint8_t keys, uint8_t mode)
     case PG_AGENTS:  pg_agents(keys, mode); break;
     case PG_HARMONY: pg_harmony(keys, mode); break;
     case PG_FORM:    pg_form(keys, mode); break;
-    default:         pg_project(keys, mode); break;
+    case PG_PROJECT: pg_project(keys, mode); break;
+    case PG_MENU:    pg_menu(keys, mode); break;
+    case PG_SONGS:   pg_songs(keys, mode); break;
+    default:         pg_tune(keys, mode); break;
     }
 }
 
@@ -421,11 +363,16 @@ void ui_redraw(void) BANKED
     ui_panel_draw();
 }
 
-/* B on the top level of any page returns home to LIVE */
+void ui_goto(uint8_t page) BANKED
+{
+    ui_page = page;
+    ui_redraw();
+}
+
+/* B on the top level of an editor returns to the menu */
 void ui_home(void) BANKED
 {
-    ui_page = PG_LIVE;
-    ui_redraw();
+    ui_goto(PG_MENU);
 }
 
 void ui_frame(void) BANKED
@@ -435,8 +382,8 @@ void ui_frame(void) BANKED
     ui_frame_cnt++;
     if (keys & K_START) { ui_toggle_play(); keys &= (uint8_t)~K_START; }
     if (keys & K_SELECT) {
-        ui_page = (uint8_t)((ui_page + 1) % NUM_PAGES);
-        ui_redraw();
+        /* SELECT: the menu; from the menu, back to playing */
+        ui_goto(ui_page == PG_MENU ? PG_LIVE : PG_MENU);
         return;
     }
     if (keys) page_call(keys, M_KEYS);

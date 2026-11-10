@@ -110,11 +110,18 @@ def write_wav(path, a):
         w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes(x.tobytes())
 
+MENU_INDEX = {7: 0, 1: 1, 2: 2, 3: 3, 4: 4, 8: 5, 5: 6}   # page -> menu row
 def goto_page(emu, page):
-    for _ in range(8):
-        if emu.sym8("_ui_page") == page: return True
-        emu.press("select")
-        emu.tick(20)
+    """navigate like a user: SELECT opens the menu, pick the item with A"""
+    if emu.sym8("_ui_page") == page: return True
+    if emu.sym8("_ui_page") != 6:
+        emu.press("select"); emu.tick(20)
+    if page == 0:
+        emu.press("select"); emu.tick(20)
+        return emu.sym8("_ui_page") == 0
+    for _ in range(8): emu.press("up")
+    for _ in range(MENU_INDEX[page]): emu.press("down")
+    emu.press("a"); emu.tick(25)
     return emu.sym8("_ui_page") == page
 
 # ===================================================================== run
@@ -138,7 +145,7 @@ check("title: not playing before user input", emu.eng8("playing") == 0)
 # ----- start playback from the title (START)
 emu.press("start")
 emu.tick(30)
-check("START on title -> LIVE page", emu.sym8("_ui_page") == 0 and "LIVE" in emu.row(0)[:8], emu.row(0))
+check("START on title -> PLAY (mood pad)", emu.sym8("_ui_page") == 0 and "AETHER" in emu.row(0)[:10], emu.row(0))
 check("playback started", emu.eng8("playing") == 1)
 t0 = emu.r16(sym["_audio_now"]); ev0 = emu.eng16("st_events")
 emu.rec = True
@@ -151,8 +158,8 @@ check("generative events produced (30 s)", ev1 - ev0 >= 10, ev1 - ev0)
 check("audio output from DMG sound hardware", rms(a) > 0.3, "rms=%.2f" % rms(a))
 emu.shot("02_live_playing")
 live = [emu.row(y) for y in range(18)]
-check("LIVE shows project, macros, scene, hint",
-      "FIRST LIGH" in live[0] and "MAJOR" in live[2] and "ENERGY" in live[9] and "DENSITY" in live[16] and "IMPRINT" in live[17],
+check("PLAY shows song, part, mood pad and button legend",
+      "FIRST LIGHT" in live[2] and "TENSE" in live[7] and "SPARSE" in live[14] and "KEEP" in live[16] and "MENU" in live[17],
       live[16])
 
 # ----- IMPRINT capture from LIVE
@@ -161,22 +168,39 @@ mlen = emu.proj8("motif", 0)
 check("IMPRINT capture (LIVE, A) stores a motif", mlen >= 2, "len=%d msg=%s" % (mlen, emu.row(17)))
 check("IMPRINT confirmation shown", "IMPRINT 1 CAPTURED" in emu.row(17), emu.row(17))
 
-# ----- macro faders on LIVE: UP/DOWN move the selected fader
-d0 = emu.proj8("macro", 0)
-emu.press("up"); emu.press("up")
-check("LIVE fader DENSITY editable (up/down)", emu.proj8("macro", 0) == min(15, d0 + 2), "%d->%d" % (d0, emu.proj8("macro", 0)))
+# ----- mood pad: the d-pad shapes the music directly
+d0, h0 = emu.proj8("macro", 0), emu.proj8("macro", 2)
+emu.press("right"); emu.press("right"); emu.press("up")
+d1, h1 = emu.proj8("macro", 0), emu.proj8("macro", 2)
+check("mood pad: right = denser, up = more tension", d1 == min(15, d0 + 2) and h1 > h0, "density %d->%d harmony %d->%d" % (d0, d1, h0, h1))
+sc0 = emu.eng8("form.scene")
+emu.press("b"); emu.tick(10)
+check("B on PLAY moves to the next part", emu.eng8("form.scene") != sc0 and "NEXT" in emu.row(17), emu.row(17))
 
-# ----- navigation through all six pages
-names = ["LIVE", "SYNTH", "AGENTS", "HARMONY", "FORM", "PROJECT"]
+# ----- menu navigation
+emu.press("select"); emu.tick(20)
+check("SELECT opens the menu", emu.sym8("_ui_page") == 6 and "SONGS" in emu.row(3), emu.row(3))
+names = {7: "SONGS", 1: "SOUNDS", 2: "PLAYERS", 3: "KEY", 4: "SECTIONS", 8: "FINE TUNE", 5: "SAVE/LOAD"}
 ok = True
-for i in range(1, 7):
-    emu.press("select"); emu.tick(25)
-    pg = emu.sym8("_ui_page")
-    hdr = emu.row(0)[:12]
-    if pg != i % 6 or names[i % 6] not in hdr: ok = False
-    emu.shot("03_page_%d_%s" % (i % 6, names[i % 6].lower()))
-check("SELECT cycles the six pages", ok)
+for pg, nm in names.items():
+    goto_page(emu, pg)
+    if emu.sym8("_ui_page") != pg or nm not in emu.row(0): ok = False
+    emu.shot("03_page_%d_%s" % (pg, nm.lower().replace("/", "_").replace(" ", "_")))
+    emu.press("b"); emu.tick(20)
+    if emu.sym8("_ui_page") != 6: ok = False
+check("every menu item opens its page; B returns to the menu", ok)
+emu.press("select"); emu.tick(20)
+check("SELECT from the menu returns to the mood pad", emu.sym8("_ui_page") == 0)
 check("playback continues while navigating", emu.eng8("playing") == 1)
+
+# ----- songs: pick a piece and it plays
+goto_page(emu, 7)
+emu.press("down"); emu.press("down")
+check("songs: description of the highlighted song", "UNSTABLE" in emu.row(16), emu.row(16))
+emu.press("a"); emu.tick(30)
+check("songs: A loads the song and returns to the pad, playing",
+      emu.sym8("_ui_page") == 0 and "STATIC MEMORY" in emu.row(2) and emu.eng8("playing") == 1, emu.row(2))
+emu.shot("03_song_loaded")
 
 # ----- SYNTH: edit instrument 1 volume, audition, wave lab drawing
 goto_page(emu, 1)
@@ -237,7 +261,7 @@ check("HARMONY: scale selection", emu.proj8("harm", 1) == s0 + 1, emu.row(2))
 emu.press("left")
 emu.shot("09_harmony")
 emu.press("b"); emu.tick(10)
-check("B on a page's top level returns home to LIVE", emu.sym8("_ui_page") == 0, emu.row(0))
+check("B on an editor's top level returns to the menu", emu.sym8("_ui_page") == 6, emu.row(0))
 
 # ----- FORM: FREE/CLOCKED and scene change
 goto_page(emu, 4)
