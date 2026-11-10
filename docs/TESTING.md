@@ -64,11 +64,12 @@ Checks (all passing in the final run, see `build/emu/report.md` after running):
 * Cartridge header: MBC5+RAM+BATTERY (0x1B), 32 KB SRAM, DMG mode; ROM size matches header.
 * Title: AETHER logo drawn, **"by Synth Centric" directly beneath it**, "generative ambient instrument", no tabbed/inverted header, not playing before input.
 * START → LIVE and playback; VBlank audio clock advances exactly 1/frame; events produced; audio output present.
-* LIVE layout; IMPRINT capture (A) stores a motif and confirms; fader editing with UP/DOWN.
-* SELECT cycles all six pages; playback continues while navigating.
+* PLAY layout (song, part, mood pad, button legend); IMPRINT capture (A) stores a motif and confirms; the mood pad changes density (right) and tension (up); B moves to the next part.
+* SELECT opens the menu; every menu item opens its page and B returns to the menu; SELECT returns to the pad; playback continues while navigating.
+* Songs: the highlighted song is described; A loads it and returns to the pad, playing.
 * SYNTH: instrument editor opens; **help panel explains the selected parameter**; VOLUME edit; A auditions; WAVE LAB opens; D-pad drawing changes the wavetable.
 * AGENTS: enable toggle; activity edit; ECOLOGY screen.
-* HARMONY: scale selection; **B returns home to LIVE**.
+* HARMONY: scale selection; **B on an editor's top level returns to the menu**.
 * FORM: FREE ↔ CLOCKED (CLOCKED generates events); manual scene change.
 * PROJECT: seed edit; save confirmation; verified save; slot OK.
 * **Power cycle with the battery RAM, LOAD restores the saved project** (seed and name).
